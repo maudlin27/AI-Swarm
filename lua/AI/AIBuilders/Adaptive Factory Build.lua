@@ -1,18 +1,13 @@
 local UCBC = '/lua/editor/UnitCountBuildConditions.lua'
 local EBC = '/lua/editor/EconomyBuildConditions.lua'
-local SAI = '/lua/ScenarioPlatoonAI.lua'
 local MIBC = '/lua/editor/MiscBuildConditions.lua'
-local IBC = '/lua/editor/InstantBuildConditions.lua'
-local MABC = '/lua/editor/MarkerBuildConditions.lua'
-
-local BasePanicZone, BaseMilitaryZone, BaseEnemyZone = import('/mods/AI-Swarm/lua/AI/swarmutilities.lua').GetDangerZoneRadii()
 
 local MaxCapFactory = 0.015 -- 0.015% of all units can be factories (STRUCTURE * FACTORY)
 local MaxCapStructure = 0.12 -- 12% of all units can be structures (STRUCTURE -MASSEXTRACTION -DEFENSE -FACTORY)
 
-local HaveLessThanThreeT2LandFactory = function( self, aiBrain )
+local HaveLessThanFiveT2LandFactory = function( self, aiBrain )
 	
-	if table.getn( aiBrain:GetListOfUnits( categories.FACTORY * categories.LAND * categories.TECH2, false, true )) >= 3 then
+	if table.getn( aiBrain:GetListOfUnits( categories.FACTORY * categories.LAND * categories.TECH2, false, true )) >= 5 then
         return 0, false
 	end
 	
@@ -46,19 +41,19 @@ BuilderGroup {
     BuildersType = 'EngineerBuilder',
     Builder {
         BuilderName = 'S1 Sea Factory 1st',
-        PlatoonTemplate = 'EngineerBuilderALLTECH',
+
+        PlatoonTemplate = 'EngineerBuilderALLTECHSwarm',
+
         Priority = 655,
-        DelayEqualBuildPlattons = {'Factories', 3},
+
         BuilderConditions = {
             { UCBC, 'HaveLessThanUnitsWithCategory', { 1, categories.STRUCTURE * categories.FACTORY * categories.NAVAL - categories.SUPPORTFACTORY } },
 
-            { EBC, 'MassToFactoryRatioBaseCheck', { 'LocationType' } },
+            { EBC, 'MassToFactoryRatioBaseCheckSwarm', { 'LocationType' } },
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.07, 0.75}},
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 250, 1000}},
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.75, 0.8 }},
-
-            { UCBC, 'CheckBuildPlattonDelay', { 'Factories' }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 0.85, 1.0 }},
         },
         BuilderType = 'Any',
         BuilderData = {
@@ -76,22 +71,18 @@ BuilderGroup {
     Builder {
         BuilderName = 'Swarm Naval Factory Mass > MassStorage',
 
-        PlatoonTemplate = 'EngineerBuilderALLTECH',
+        PlatoonTemplate = 'EngineerBuilderALLTECHSwarm',
 
         Priority = 600,
 
         PriorityFunction = HaveLessThanThreeT2NavalFactory,
 
-        DelayEqualBuildPlattons = {'Factories', 3},
-
         BuilderConditions = {
-            { UCBC, 'CheckBuildPlattonDelay', { 'Factories' }},
-            
-            { EBC, 'MassToFactoryRatioBaseCheck', { 'LocationType' } },
+            { EBC, 'MassToFactoryRatioBaseCheckSwarm', { 'LocationType' } },
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 250, 1000}},
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 250, 1000}},
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.9, 1.0 }},          
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 0.85, 1.0 }},          
             
             { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 2, categories.STRUCTURE * categories.FACTORY * categories.TECH1 * categories.NAVAL }},
            
@@ -111,28 +102,24 @@ BuilderGroup {
     },
 
     Builder {
-        BuilderName = 'Swarm Naval Factory Enemy - Outnumbered',
+        BuilderName = 'Swarm Naval Factory Enemy - Naval Ratio',
         
-        PlatoonTemplate = 'EngineerBuilderALLTECH',
+        PlatoonTemplate = 'EngineerBuilderALLTECHSwarm',
 
         Priority = 650,
 
         PriorityFunction = HaveLessThanThreeT2NavalFactory,
 
-        DelayEqualBuildPlattons = {'Factories', 3},
-
         BuilderConditions = {
-            { UCBC, 'CheckBuildPlattonDelay', { 'Factories' }},
+            { EBC, 'MassToFactoryRatioBaseCheckSwarm', { 'LocationType' } },
 
-            { EBC, 'MassToFactoryRatioBaseCheck', { 'LocationType' } },
+            { UCBC, 'NavalStrengthRatioLessThan', { 1.5 } },
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 250, 1000}},
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 250, 1000}},
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.9, 1.0 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 0.85, 1.0 }},
 
             { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH1 }},
-
-            { UCBC, 'HaveUnitRatioVersusEnemySwarm', { 1.00, categories.STRUCTURE * categories.FACTORY * categories.NAVAL, '<',categories.STRUCTURE * categories.FACTORY * categories.NAVAL } },
         },
         BuilderType = 'Any',
         BuilderData = {
@@ -151,117 +138,50 @@ BuilderGroup {
 -- Perhaps adjusting the Factory Priority and Such depending on aiBrain.SelfExtractorCount is Viable?
 -- Perhaps turning back on factory incase Mass Income Late Game allows additional factory building specifically.
 -- Straight up building on T2-T3 Factories. 
+-- Were going to start allowing T2-T3 Factories to be built straight up. 
+-- This is because of how the Tech Progression is so fast and eco is so good nowadays especially on mass maps that its viable for Swarm.
 
 BuilderGroup { BuilderGroupName = 'Swarm Adaptive Factory Build',
     BuildersType = 'EngineerBuilder',
-
-    Builder {
-        BuilderName = 'Swarm Land Factory Mass > MassStorage',
-
-        PlatoonTemplate = 'EngineerBuilderALLTECH',
-
-        Priority = 650,
-
-        PriorityFunction = HaveLessThanThreeT2LandFactory,
-
-        DelayEqualBuildPlattons = {'Factories', 3},
-
-        BuilderConditions = {
-            { UCBC, 'CheckBuildPlattonDelay', { 'Factories' }},
-
-            { MIBC, 'CanPathToCurrentEnemySwarm', { true, 'LocationType' } },
-            
-            { EBC, 'MassToFactoryRatioBaseCheck', { 'LocationType' } },
-
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
-
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.9, 1.0 }},         
-            
-            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 2, categories.STRUCTURE * categories.FACTORY * categories.TECH1 }},
-           
-            { UCBC, 'HaveLessThanUnitsWithCategory', { 10, categories.STRUCTURE * categories.FACTORY * categories.LAND * (categories.TECH1 + categories.TECH2 + categories.TECH3) }},
-        },
-        BuilderType = 'Any',
-        BuilderData = {
-            Construction = {
-                Location = 'LocationType',
-                BuildClose = false,
-                BuildStructures = {
-                    'T1LandFactory',
-                },
-            }
-        }
-    },
     
     Builder {
         BuilderName = 'Swarm Land Factory Enemy - Land Ratio',
 
-        PlatoonTemplate = 'EngineerBuilderALLTECH',
-
-        Priority = 650,
-
-        PriorityFunction = HaveLessThanThreeT2LandFactory,
-
-        DelayEqualBuildPlattons = {'Factories', 3},
-
-        BuilderConditions = {
-            { UCBC, 'CheckBuildPlattonDelay', { 'Factories' }},
-
-            { UCBC, 'CanPathLandBaseToLandTargetsSwarm', {  'LocationType', categories.STRUCTURE * categories.FACTORY * categories.LAND }},
-
-            { UCBC, 'LandStrengthRatioLessThan', { 1.5 } },
-
-            { EBC, 'MassToFactoryRatioBaseCheck', { 'LocationType' } },
-
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
-
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.9, 1.0 }}, 
-
-            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 2, categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH1 }},
-        },
-        BuilderType = 'Any',
-        BuilderData = {
-            BuildClose = false,
-            Construction = {
-                Location = 'LocationType',
-                BuildStructures = {
-                    'T1LandFactory',
-                },
-            }
-        }
-    },
-
-    Builder {
-        BuilderName = 'Swarm Air Factory Mass > MassStorage',
-
-        PlatoonTemplate = 'EngineerBuilderALLTECH',
+        PlatoonTemplate = 'EngineerBuilderALLTECHSwarm',
 
         Priority = 645,
 
-        DelayEqualBuildPlattons = {'Factories', 3},
-
-        PriorityFunction = HaveLessThanThreeT2AirFactory,
+        PriorityFunction = HaveLessThanFiveT2LandFactory,
 
         BuilderConditions = {
-            { UCBC, 'CheckBuildPlattonDelay', { 'Factories' }},
+            { UCBC, 'CanPathLandBaseToLandTargetsSwarm', {  'LocationType', categories.STRUCTURE * categories.FACTORY * categories.LAND }},
 
-            { EBC, 'MassToFactoryRatioBaseCheck', { 'LocationType' } },
+            --{ UCBC, 'LandStrengthRatioLessThan', { 1.5 } },
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'MassToFactoryRatioBaseCheckSwarm', { 'LocationType' } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.9, 1.0 }}, 
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
 
-            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH1 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 0.85, 1.0 }}, 
 
-            { UCBC, 'HaveLessThanUnitsWithCategory', { 6, categories.STRUCTURE * categories.FACTORY * categories.AIR * (categories.TECH1 + categories.TECH2 + categories.TECH3) }},
+            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.STRUCTURE * categories.FACTORY }},
+
+            { UCBC, 'HaveLessThanUnitsWithCategory', { 16, categories.STRUCTURE * categories.FACTORY * categories.LAND * (categories.TECH1 + categories.TECH2 + categories.TECH3) }},
         },
         BuilderType = 'Any',
         BuilderData = {
             BuildClose = false,
             Construction = {
+                AdjacencyBias = 'Forward',
+                AdjacencyPriority = {
+                    categories.MASSEXTRACTION,
+                    categories.MASSPRODUCTION,
+                    categories.ENERGYPRODUCTION * categories.TECH2,
+                    categories.ENERGYPRODUCTION * categories.TECH1,
+                },
                 Location = 'LocationType',
                 BuildStructures = {
-                    'T1AirFactory',  
+                    'T1LandFactory',
                 },
             }
         }
@@ -270,34 +190,199 @@ BuilderGroup { BuilderGroupName = 'Swarm Adaptive Factory Build',
     Builder {
         BuilderName = 'Swarm Air Factory > Air Ratio',
 
-        PlatoonTemplate = 'EngineerBuilderALLTECH',
+        PlatoonTemplate = 'EngineerBuilderALLTECHSwarm',
 
         Priority = 650,
 
         PriorityFunction = HaveLessThanThreeT2AirFactory,
 
-        DelayEqualBuildPlattons = {'Factories', 3},
-
         BuilderConditions = {
-            { UCBC, 'CheckBuildPlattonDelay', { 'Factories' }},
-
             { UCBC, 'AirStrengthRatioLessThan', { 1 } },
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.9, 1.0 }}, 
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 0.83, 1.02 }}, 
 
-            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH1 }},
+            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.STRUCTURE * categories.FACTORY }},
 
-            { UCBC, 'HaveLessThanUnitsWithCategory', { 8, categories.STRUCTURE * categories.FACTORY * categories.AIR * (categories.TECH1 + categories.TECH2 + categories.TECH3) }},
+            { UCBC, 'HaveLessThanUnitsWithCategory', { 6, categories.STRUCTURE * categories.FACTORY * categories.AIR * (categories.TECH1 + categories.TECH2 + categories.TECH3) }},
         },
         BuilderType = 'Any',
         BuilderData = {
             BuildClose = false,
             Construction = {
+                AdjacencyBias = 'Back',
+                AdjacencyPriority = {
+                    categories.ENERGYPRODUCTION * categories.TECH3,
+                    categories.ENERGYPRODUCTION * categories.TECH2,
+                    categories.HYDROCARBON,
+                    categories.ENERGYPRODUCTION * categories.TECH1,
+                    categories.MASSEXTRACTION,
+                    categories.MASSPRODUCTION,
+                },
                 Location = 'LocationType',
                 BuildStructures = {
                     'T1AirFactory',  
+                },
+            }
+        }
+    },
+
+    -- Here Begins T2 Factories
+
+    Builder {
+        BuilderName = 'Swarm Land Factory Mass > MassStorage - T2',
+
+        PlatoonTemplate = 'EngineerBuilderT2T3Swarm',
+
+        Priority = 700,
+
+        BuilderConditions = {
+            { MIBC, 'CanPathToCurrentEnemySwarm', { true, 'LocationType' } },
+            
+            { EBC, 'MassToFactoryRatioBaseCheckSwarm', { 'LocationType' } },
+
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
+
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }},         
+            
+            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 2, categories.STRUCTURE * categories.FACTORY * categories.LAND * (categories.TECH2 + categories.TECH3) }},
+           
+            { UCBC, 'HaveLessThanUnitsWithCategory', { 10, categories.STRUCTURE * categories.FACTORY * categories.LAND * (categories.TECH2 + categories.TECH3) }},
+        },
+        BuilderType = 'Any',
+        BuilderData = {
+            Construction = {
+                AdjacencyBias = 'Forward',
+                AdjacencyPriority = {
+                    categories.MASSEXTRACTION,
+                    categories.MASSPRODUCTION,
+                    categories.ENERGYPRODUCTION * categories.TECH2,
+                    categories.ENERGYPRODUCTION * categories.TECH1,
+                },
+                Location = 'LocationType',
+                BuildClose = false,
+                BuildStructures = {
+                    'T2SupportLandFactory',
+                },
+            }
+        }
+    },
+
+    Builder {
+        BuilderName = 'Swarm Air Factory Mass > MassStorage - T2',
+
+        PlatoonTemplate = 'EngineerBuilderT2T3Swarm',
+
+        Priority = 695,
+
+        BuilderConditions = {
+            { EBC, 'MassToFactoryRatioBaseCheckSwarm', { 'LocationType' } },
+
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
+
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }}, 
+
+            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.STRUCTURE * categories.FACTORY * categories.AIR * (categories.TECH2 + categories.TECH3) }},
+
+            { UCBC, 'HaveLessThanUnitsWithCategory', { 6, categories.STRUCTURE * categories.FACTORY * categories.AIR * (categories.TECH2 + categories.TECH3) }},
+        },
+        BuilderType = 'Any',
+        BuilderData = {
+            BuildClose = false,
+            Construction = {
+                AdjacencyBias = 'Back',
+                AdjacencyPriority = {
+                    categories.ENERGYPRODUCTION * categories.TECH3,
+                    categories.ENERGYPRODUCTION * categories.TECH2,
+                    categories.HYDROCARBON,
+                    categories.ENERGYPRODUCTION * categories.TECH1,
+                    categories.MASSEXTRACTION,
+                    categories.MASSPRODUCTION,
+                },
+                Location = 'LocationType',
+                BuildStructures = {
+                    'T2SupportAirFactory',  
+                },
+            }
+        }
+    },
+
+    -- Here Begins T3 Factories
+
+    Builder {
+        BuilderName = 'Swarm Land Factory Mass > MassStorage - T3',
+
+        PlatoonTemplate = 'EngineerBuilderT3&SUBSwarm',
+
+        Priority = 935,
+
+        BuilderConditions = {
+            { MIBC, 'CanPathToCurrentEnemySwarm', { true, 'LocationType' } },
+            
+            { EBC, 'MassToFactoryRatioBaseCheckSwarm', { 'LocationType' } },
+
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
+
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.02, 1.02 }},         
+            
+            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 2, categories.STRUCTURE * categories.FACTORY * categories.LAND * (categories.TECH2 + categories.TECH3) }},
+           
+            { UCBC, 'HaveLessThanUnitsWithCategory', { 10, categories.STRUCTURE * categories.FACTORY * categories.LAND * (categories.TECH2 + categories.TECH3) }},
+        },
+        BuilderType = 'Any',
+        BuilderData = {
+            Construction = {
+                AdjacencyBias = 'Forward',
+                AdjacencyPriority = {
+                    categories.MASSEXTRACTION,
+                    categories.MASSPRODUCTION,
+                    categories.ENERGYPRODUCTION * categories.TECH2,
+                    categories.ENERGYPRODUCTION * categories.TECH1,
+                },
+                Location = 'LocationType',
+                BuildClose = false,
+                BuildStructures = {
+                    'T3SupportLandFactory',
+                },
+            }
+        }
+    },
+
+    Builder {
+        BuilderName = 'Swarm Air Factory Mass > MassStorage - T3',
+
+        PlatoonTemplate = 'EngineerBuilderT3&SUBSwarm',
+
+        Priority = 935,
+
+        BuilderConditions = {
+            { EBC, 'MassToFactoryRatioBaseCheckSwarm', { 'LocationType' } },
+
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
+
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.02, 1.02 }}, 
+
+            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.STRUCTURE * categories.FACTORY * categories.AIR * (categories.TECH2 + categories.TECH3) }},
+
+            { UCBC, 'HaveLessThanUnitsWithCategory', { 6, categories.STRUCTURE * categories.FACTORY * categories.AIR * (categories.TECH2 + categories.TECH3) }},
+        },
+        BuilderType = 'Any',
+        BuilderData = {
+            BuildClose = false,
+            Construction = {
+                AdjacencyBias = 'Back',
+                AdjacencyPriority = {
+                    categories.ENERGYPRODUCTION * categories.TECH3,
+                    categories.ENERGYPRODUCTION * categories.TECH2,
+                    categories.HYDROCARBON,
+                    categories.ENERGYPRODUCTION * categories.TECH1,
+                    categories.MASSEXTRACTION,
+                    categories.MASSPRODUCTION,
+                },
+                Location = 'LocationType',
+                BuildStructures = {
+                    'T3SupportAirFactory',  
                 },
             }
         }
@@ -309,34 +394,39 @@ BuilderGroup { BuilderGroupName = 'Swarm Factory Builders Expansions',
     
     Builder { BuilderName = 'All Land Factory Expansions',
 
-        PlatoonTemplate = 'EngineerBuilderALLTECH',
+        PlatoonTemplate = 'EngineerBuilderALLTECHSwarm',
 
         Priority = 650,
 
-        PriorityFunction = HaveLessThanThreeT2LandFactory,
+        PriorityFunction = HaveLessThanFiveT2LandFactory,
 
         InstanceCount = 1,                                                      -- Number of plattons that will be formed with this template.
 
-        DelayEqualBuildPlattons = {'Factories', 3},
-
         BuilderConditions = {
-            { UCBC, 'CheckBuildPlattonDelay', { 'Factories' }},
+            { UCBC, 'FactoryCapCheck', { 'LocationType', 'Land' } },
 
             { UCBC, 'CanPathLandBaseToLandTargetsSwarm', {  'LocationType', categories.STRUCTURE * categories.FACTORY * categories.LAND }},
 
-            { UCBC, 'LandStrengthRatioLessThan', { 1.5 } },
+            { UCBC, 'LandStrengthRatioLessThan', { 1.25 } },
 
-            { EBC, 'MassToFactoryRatioBaseCheck', { 'LocationType' } },
+            { EBC, 'MassToFactoryRatioBaseCheckSwarm', { 'LocationType' } },
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.9, 1.0 }}, 
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }}, 
 
-            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 2, categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH1 }},
+            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH1 }},
         },
         BuilderType = 'Any',
         BuilderData = {
             Construction = {
+                AdjacencyBias = 'ForwardClose',
+                AdjacencyPriority = {
+                    categories.MASSEXTRACTION,
+                    categories.MASSPRODUCTION,
+                    categories.ENERGYPRODUCTION * categories.TECH2,
+                    categories.ENERGYPRODUCTION * categories.TECH1,
+                },
                 Location = 'LocationType',
                 BuildStructures = {
                     'T1LandFactory',
@@ -347,34 +437,41 @@ BuilderGroup { BuilderGroupName = 'Swarm Factory Builders Expansions',
 
     Builder { BuilderName = 'All Air Factory Expansions',
 
-        PlatoonTemplate = 'EngineerBuilderALLTECH',
+        PlatoonTemplate = 'EngineerBuilderALLTECHSwarm',
 
         Priority = 650,
 
-        PriorityFunction = HaveLessThanThreeT2AirFactory,
+        PriorityFunction = HaveLessThanThreeT2AirFactory, 
 
         InstanceCount = 1,
 
-        DelayEqualBuildPlattons = {'Factories', 3},
-
         BuilderConditions = {
-            { UCBC, 'CheckBuildPlattonDelay', { 'Factories' }},
+            { UCBC, 'FactoryCapCheck', { 'LocationType', 'Air' } },
 
             { UCBC, 'CanPathNavalBaseToNavalTargetsSwarm', {  'LocationType', categories.STRUCTURE * categories.FACTORY * categories.AIR }},
 
-            { UCBC, 'AirStrengthRatioLessThan', { 1 } },
+            { UCBC, 'AirStrengthRatioLessThan', { 0.75 } },
 
-            { EBC, 'MassToFactoryRatioBaseCheck', { 'LocationType' } },
+            { EBC, 'MassToFactoryRatioBaseCheckSwarm', { 'LocationType' } },
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.9, 1.0 }}, 
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }}, 
 
-            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 2, categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH1 }},
+            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH1 }},
         },
         BuilderType = 'Any',
         BuilderData = {
             Construction = {
+                AdjacencyBias = 'BackClose',
+                AdjacencyPriority = {
+                    categories.ENERGYPRODUCTION * categories.TECH3,
+                    categories.ENERGYPRODUCTION * categories.TECH2,
+                    categories.HYDROCARBON,
+                    categories.ENERGYPRODUCTION * categories.TECH1,
+                    categories.MASSEXTRACTION,
+                    categories.MASSPRODUCTION,
+                },
                 Location = 'LocationType',
                 BuildStructures = {
                     'T1AirFactory',
@@ -388,12 +485,14 @@ BuilderGroup { BuilderGroupName = 'Swarm Gate Builders',                        
     BuildersType = 'EngineerBuilder',
     
     Builder { BuilderName = 'U-T3 Gate Cap - Main Base',
-        PlatoonTemplate = 'T3EngineerBuilder',
+        PlatoonTemplate = 'EngineerBuilderT3&SUBSwarm',
         Priority = 1350,
         BuilderConditions = {
-        	{ EBC, 'GreaterThanEconEfficiencyOverTime', { 1.01, 1.02 }},
+        	{ EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.02, 1.03 }},
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.05, 0.50}},
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
+
+            { UCBC, 'IsEngineerNotBuildingSwarm', { categories.STRUCTURE * categories.GATE * categories.TECH3 }},
 
             { UCBC, 'HaveGreaterThanUnitsWithCategory', { 0, categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH3 } },
 
@@ -404,6 +503,11 @@ BuilderGroup { BuilderGroupName = 'Swarm Gate Builders',                        
         BuilderType = 'Any',
         BuilderData = {
             Construction = {
+                AdjacencyPriority = {
+                    categories.MASSPRODUCTION * categories.TECH3,
+                    categories.ENERGYPRODUCTION * categories.TECH3,
+                    categories.MASSEXTRACTION * categories.TECH3,
+                },
                 BuildClose = true,
                 Location = 'LocationType',
                 AdjacencyCategory = 'ENERGYPRODUCTION',
@@ -415,14 +519,16 @@ BuilderGroup { BuilderGroupName = 'Swarm Gate Builders',                        
     },
 
     Builder { BuilderName = 'U-T3 Gate Cap - Expansions',
-        PlatoonTemplate = 'T3EngineerBuilder',
+        PlatoonTemplate = 'EngineerBuilderT3&SUBSwarm',
         Priority = 1300,
         BuilderConditions = {
-        	{ EBC, 'GreaterThanEconEfficiencyOverTime', { 1.01, 1.02 }},
+        	{ EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.03, 1.04 }},
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.075, 0.75}},
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
 
-            { UCBC, 'HaveGreaterThanUnitsWithCategory', { 0, categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH3 } },
+            { UCBC, 'IsEngineerNotBuildingSwarm', { categories.STRUCTURE * categories.GATE * categories.TECH3 }},
+
+            { UCBC, 'HaveGreaterThanUnitsWithCategory', { 1, categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH3 } },
 
             { UCBC, 'BuildNotOnLocationSwarm', { 'LocationType', 'MAIN' } },
 
@@ -431,6 +537,11 @@ BuilderGroup { BuilderGroupName = 'Swarm Gate Builders',                        
         BuilderType = 'Any',
         BuilderData = {
             Construction = {
+                AdjacencyPriority = {
+                    categories.MASSPRODUCTION * categories.TECH3,
+                    categories.ENERGYPRODUCTION * categories.TECH3,
+                    categories.MASSEXTRACTION * categories.TECH3,
+                },
                 BuildClose = true,
                 Location = 'LocationType',
                 AdjacencyCategory = 'ENERGYPRODUCTION',
@@ -446,16 +557,18 @@ BuilderGroup { BuilderGroupName = 'Swarm Air Staging Platform Builders',        
     BuildersType = 'EngineerBuilder',
     
     Builder { BuilderName = 'U-T1 Air Staging 1st',
-        PlatoonTemplate = 'EngineerBuilder',
+        PlatoonTemplate = 'T1EngineerBuilderSwarm',
         Priority = 600,
         BuilderConditions = {
             { UCBC, 'HaveLessThanUnitsWithCategory', { 1, categories.STRUCTURE * categories.AIRSTAGINGPLATFORM }},
           
             { UCBC, 'HaveGreaterThanUnitsWithCategory', { 1, categories.STRUCTURE * categories.ENERGYPRODUCTION * (categories.TECH2 + categories.TECH3) } },
             
-            { EBC, 'GreaterThanEconTrendSwarm', { 0.0, 0.0 } }, 
+            { EBC, 'GreaterThanEconTrendOverTimeSwarm', { 0.0, 0.0 } }, 
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.04, 0.8}},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }},
+
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 200, 2000}},
            
             { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.STRUCTURE * categories.AIRSTAGINGPLATFORM }},
         },
@@ -472,16 +585,18 @@ BuilderGroup { BuilderGroupName = 'Swarm Air Staging Platform Builders',        
         }
     },
     Builder { BuilderName = 'U-T1 Air Staging',
-        PlatoonTemplate = 'EngineerBuilder',
+        PlatoonTemplate = 'T1EngineerBuilderSwarm',
         Priority = 600,
         BuilderConditions = {
             { UCBC, 'HaveUnitRatioVersusEnemySwarm', { 0.05, categories.STRUCTURE * categories.AIRSTAGINGPLATFORM, '<', categories.MOBILE * categories.AIR } },
 
             { UCBC, 'HaveLessThanUnitsWithCategory', { 10, categories.STRUCTURE * categories.AIRSTAGINGPLATFORM }},
 
-            { EBC, 'GreaterThanEconTrendSwarm', { 0.0, 0.0 } },
+            { EBC, 'GreaterThanEconTrendOverTimeSwarm', { 0.0, 0.0 } },
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.15, 0.95}}, 
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.01, 1.02 }},
+
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
 
             { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.STRUCTURE * categories.AIRSTAGINGPLATFORM }},
 

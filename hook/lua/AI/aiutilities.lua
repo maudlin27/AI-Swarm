@@ -1,9 +1,10 @@
-WARN('['..string.gsub(debug.getinfo(1).source, ".*\\(.*.lua)", "%1")..', line:'..debug.getinfo(1).currentline..'] * AI-Swarm: offset aiutilities.lua' )
-
+local SwarmUtils = import('/mods/AI-Swarm/lua/AI/Swarmutilities.lua')
+local AIBehaviors = import('/lua/ai/AIBehaviors.lua')
+local MABC = import('/lua/editor/MarkerBuildConditions.lua')
+local AIAttackUtils = import('/lua/AI/aiattackutilities.lua')
 local import = import
 
 local SWARMREMOVE = table.remove
-local SWARMCOPY = table.copy
 local SWARMGETN = table.getn
 local SWARMINSERT = table.insert
 local SWARMWAIT = coroutine.yield
@@ -11,17 +12,31 @@ local SWARMTIME = GetGameTimeSeconds
 local SWARMPI = math.pi
 local SWARMSIN = math.sin
 local SWARMCOS = math.cos
+local SWARMFLOOR = math.floor
 local SWARMENTITY = EntityCategoryContains
-local SWARMPARSE = ParseEntityCategory
 
 local VDist2 = VDist2
 
-local GetThreatsAroundPosition = moho.aibrain_methods.GetThreatsAroundPosition
 local GetThreatAtPosition = moho.aibrain_methods.GetThreatAtPosition
 local GetNumUnitsAroundPoint = moho.aibrain_methods.GetNumUnitsAroundPoint
 local GetUnitsAroundPoint = moho.aibrain_methods.GetUnitsAroundPoint
-local PlatoonExists = moho.aibrain_methods.PlatoonExists
 local GetAIBrain = moho.unit_methods.GetAIBrain
+
+function FindUnclutteredAreaSwarm(aiBrain, category, location, radius, maxUnits, maxRadius, avoidCat)
+    local units = aiBrain:GetUnitsAroundPoint(category, location, radius, 'Ally')
+    local index = aiBrain:GetArmyIndex()
+    local retUnits = {}
+    for _, v in units do
+        if not v.Dead and v:GetAIBrain():GetArmyIndex() == index then
+            local nearby = aiBrain:GetNumUnitsAroundPoint(avoidCat, v:GetPosition(), maxRadius, 'Ally')
+            if nearby < maxUnits then
+                SWARMINSERT(retUnits, v)
+            end
+        end
+    end
+
+    return retUnits
+end 
 
 -- AI-Swarm: Helper function for targeting
 function ValidateLayerSwarm(UnitPos,MovementLayer)
@@ -53,7 +68,90 @@ function ValidateAttackLayerSwarm(position, TargetPosition)
     return false
 end
 
--- AI-Uveso: Helper function for targeting
+function AIGetMarkerLocationsNotFriendlySwarm(aiBrain, markerType)
+    local markerList = {}
+    --LOG('* AI-Swarm: Marker Type for AIGetMarkerLocationsNotFriendlySwarm is '..markerType)
+    if markerType == 'Start Location' then
+        local tempMarkers = AIGetMarkerLocationsSwarm(aiBrain, 'Blank Marker')
+        for k, v in tempMarkers do
+            if string.sub(v.Name, 1, 5) == 'ARMY_' then
+                local ecoStructures = aiBrain:GetUnitsAroundPoint(categories.STRUCTURE * (categories.MASSEXTRACTION + categories.MASSPRODUCTION), v.Position, 30, 'Ally')
+                local GetBlueprint = moho.entity_methods.GetBlueprint
+                local ecoThreat = 0
+                for _, v in ecoStructures do
+                    local bp = v:GetBlueprint()
+                    local ecoStructThreat = bp.Defense.EconomyThreatLevel
+                    --LOG('* AI-Swarm: Eco Structure'..ecoStructThreat)
+                    ecoThreat = ecoThreat + ecoStructThreat
+                end
+                if ecoThreat < 10 then
+                    SWARMINSERT(markerList, {Position = v.Position, Name = v.Name})
+                end
+            end
+        end
+    else
+        local markers = Scenario.MasterChain._MASTERCHAIN_.Markers
+        if markers then
+            for k, v in markers do
+                if v.type == markerType then
+                    SWARMINSERT(markerList, {Position = v.Position, Name = k})
+                end
+            end
+        end
+    end
+    return markerList
+end
+
+function AIGetMarkerLocationsSwarm(aiBrain, markerType)
+    local markerList = {}
+    if markerType == 'Start Location' then
+        local tempMarkers = AIGetMarkerLocationsSwarm(aiBrain, 'Blank Marker')
+        for k, v in tempMarkers do
+            if string.sub(v.Name, 1, 5) == 'ARMY_' then
+                SWARMINSERT(markerList, {Position = v.Position, Name = v.Name, MassSpotsInRange = v.MassSpotsInRange})
+            end
+        end
+    else
+        local markers = Scenario.MasterChain._MASTERCHAIN_.Markers
+        if markers then
+            for k, v in markers do
+                if v.type == markerType then
+                    SWARMINSERT(markerList, {Position = v.position, Name = k, MassSpotsInRange = v.MassSpotsInRange})
+                end
+            end
+        end
+    end
+
+    return markerList
+end
+
+function AIGetMarkersAroundLocationSwarm(aiBrain, markerType, pos, radius, threatMin, threatMax, threatRings, threatType)
+    local markers = AIGetMarkerLocationsSwarm(aiBrain, markerType)
+    local returnMarkers = {}
+    for _, v in markers do
+        if markerType == 'Blank Marker' then
+            if VDist2Sq(aiBrain.BuilderManagers['MAIN'].Position[1], aiBrain.BuilderManagers['MAIN'].Position[3], v.Position[1], v.Position[3]) < 10000 then
+                --LOG('Start Location too close to main base skip, location is '..VDist2Sq(aiBrain.BuilderManagers['MAIN'].Position[1], aiBrain.BuilderManagers['MAIN'].Position[3], v.Position[1], v.Position[3])..' from main base pos')
+                continue
+            end
+        end
+        local dist = VDist2(pos[1], pos[3], v.Position[1], v.Position[3])
+        if dist < radius then
+            if not threatMin then
+                SWARMINSERT(returnMarkers, v)
+            else
+                local threat = GetThreatAtPosition(aiBrain, v.Position, threatRings, true, threatType or 'Overall')
+                if threat >= threatMin and threat <= threatMax then
+                    SWARMINSERT(returnMarkers, v)
+                end
+            end
+        end
+    end
+
+    return returnMarkers
+end
+
+-- AI-Swarm: Helper function for targeting
 function IsNukeBlastAreaSwarm(aiBrain, TargetPosition)
     -- check if the target is inside a nuke blast radius
     if aiBrain.NukedArea then
@@ -69,8 +167,6 @@ function IsNukeBlastAreaSwarm(aiBrain, TargetPosition)
 end
 
 -- AI-Swarm: Target function
--- Rework Target Function to understand actual Threat instead of using Number of Units to determine whether situation is winnable or not.
--- Unit to Unit can be extremely incorrect.
 function AIFindNearestCategoryTargetInRangeSwarm(aiBrain, platoon, squad, position, maxRange, MoveToCategories, TargetSearchCategory, enemyBrain)
     if not maxRange then
         return false, false, false, 'NoRange'
@@ -86,7 +182,7 @@ function AIFindNearestCategoryTargetInRangeSwarm(aiBrain, platoon, squad, positi
     end
     local AttackEnemyStrength = platoon.PlatoonData.AttackEnemyStrength or 300
     local platoonUnits = platoon:GetPlatoonUnits()
-    --local PlatoonStrength = SWARMGETN(platoonUnits)
+    local PlatoonStrength = SWARMGETN(platoonUnits)
     local IgnoreTargetLayerCheck = platoon.PlatoonData.IgnoreTargetLayerCheck
     
     local enemyIndex = false
@@ -127,7 +223,7 @@ function AIFindNearestCategoryTargetInRangeSwarm(aiBrain, platoon, squad, positi
     local UnitWithPath = false
     local UnitNoPath = false
     local count = 0
-    local TargetsInRange, PlatoonStrength, PlatoonStrengthAir, EnemyStrength, TargetPosition, distance, targetRange, success, bestGoalPos
+    local TargetsInRange, EnemyStrength, TargetPosition, distance, targetRange, success, bestGoalPos
     for _, range in RangeList do
         TargetsInRange = aiBrain:GetUnitsAroundPoint(TargetSearchCategory, position, range, 'Enemy')
         --LOG('* AIFindNearestCategoryTargetInRange: numTargets '..table.getn(TargetsInRange)..'  ')
@@ -137,7 +233,7 @@ function AIFindNearestCategoryTargetInRangeSwarm(aiBrain, platoon, squad, positi
                 if Target.Dead or Target:BeenDestroyed() then
                     continue
                 end
-                TargetPosition = SWARMCOPY(Target:GetPosition())
+                TargetPosition = Target:GetPosition()
                 targetRange = VDist2(position[1],position[3],TargetPosition[1],TargetPosition[3])
                 --LOG('* AIFindNearestCategoryTargetInRange: targetRange '..repr(targetRange))
                 if targetRange < distance then
@@ -169,71 +265,22 @@ function AIFindNearestCategoryTargetInRangeSwarm(aiBrain, platoon, squad, positi
                                     if Target.CaptureInProgress then continue end
                                     if not aiBrain:PlatoonExists(platoon) then
                                         return false, false, false, 'NoPlatoonExists'
-                                    end 
-
-                                    -- Some Platoons are returning Nil PlatoonStrength Values which is interesting 
-                                    -- Some return 7 or 4, extremely low values however GetThreatsAroundPosition returns large tables of 80+
-                                    -- Clearly something is wrong, but I am currently not to sure as of what perhaps the threat values are being inflated
-                                    -- or perhaps CalculatePlatoonThreat is being funky? 
-                                    -- Currently Unknown
-                                    -- Another Day to let this sink in mayhaps. 
-                                    
-                                    if platoon.MovementLayer == 'Land' then
-                                        PlatoonStrength = platoon:CalculatePlatoonThreat('AntiSurface', categories.ALLUNITS)
-                                    elseif platoon.MovementLayer == 'Air' then
-                                        PlatoonStrengthAir = platoon:CalculatePlatoonThreat('AntiAir', categories.ALLUNITS)
-                                    elseif platoon.MovementLayer == 'Water' then
-                                        PlatoonStrength = platoon:CalculatePlatoonThreat('AntiSurface', categories.ALLUNITS)
-                                    elseif platoon.MovementLayer == 'Amphibious' then
-                                        PlatoonStrength = platoon:CalculatePlatoonThreat('AntiSurface', categories.ALLUNITS)
                                     end
-                                    --LOG("Our Platoon Strength is " .. repr(PlatoonStrength))
-                                    
-                                    -- Ok, we are here. This is our redone threat function that is using "GetThreatsAroundPosition" referencing the TargetPosition a Radius and a ThreatType
-                                    -- The Above Function Calculates OUR OWN Platoon's Threat so that we can compare threats by dividing a hundred to see if its below or above a hundred
-                                    -- so that threat always comes back at a reasonable number like 150 so our platoon is 50% stronger then the Enemy's for Example.
-                                    -- This will allow much much more reasonable engagements by our platoons HOWEVER I need to log this more in-depth because I am seeing some weird Disbanding
-                                    -- After implementing this what I think is happening is some severe threat numbers being too low or too high or something along those lines which of course I kind of expected.
-                                    
-                                    -- Ok so dug a bit deeper and now I can see the threat clearer however platoons are still not forming correctly for some reason that's unknown to me as of right now.
-                                    -- I can also see the coordinates and have done some controlled test to see if the threat is CORRECT and so I'm no longer questioning myself on some things.
-                                    -- Also corrected the radius to rings because the FAF Documentation was incorrect in its args.
-                                    -- I will continue investigation tomorrow after School.
-
-                                    -- Ok so after reviewing the code, like last week (lol) I realized that it wasn't threat numbers something else is disbanding the platoons rapidly and then banding them again
-                                    -- However I havn't had time to log such things (cough) anyhow I'll probably log it sometime this week or smth idk. 
-
                                     if platoon.MovementLayer == 'Land' then
-                                        EnemyStrength = GetThreatsAroundPosition( aiBrain, TargetPosition, 0, true, 'AntiSurface')
+                                        EnemyStrength = aiBrain:GetNumUnitsAroundPoint( (categories.STRUCTURE + categories.MOBILE) * (categories.DIRECTFIRE + categories.INDIRECTFIRE) , TargetPosition, 50, 'Enemy' )
                                     elseif platoon.MovementLayer == 'Air' then
-                                        EnemyStrength = GetThreatsAroundPosition( aiBrain, TargetPosition, 0, true, 'AntiAir')
+                                        EnemyStrength = aiBrain:GetNumUnitsAroundPoint( (categories.STRUCTURE + categories.MOBILE) * categories.ANTIAIR , TargetPosition, 60, 'Enemy' )
                                     elseif platoon.MovementLayer == 'Water' then
-                                        EnemyStrength = GetThreatsAroundPosition( aiBrain, TargetPosition, 0, true, 'AntiSurface')
+                                        EnemyStrength = aiBrain:GetNumUnitsAroundPoint( (categories.STRUCTURE + categories.MOBILE) * (categories.DIRECTFIRE + categories.INDIRECTFIRE + categories.ANTINAVY) , TargetPosition, 50, 'Enemy' )
                                     elseif platoon.MovementLayer == 'Amphibious' then
-                                        EnemyStrength = GetThreatsAroundPosition( aiBrain, TargetPosition, 0, true, 'AntiSurface')
+                                        EnemyStrength = aiBrain:GetNumUnitsAroundPoint( (categories.STRUCTURE + categories.MOBILE) * (categories.DIRECTFIRE + categories.INDIRECTFIRE + categories.ANTINAVY) , TargetPosition, 50, 'Enemy' )
                                     end
                                     --LOG('PlatoonStrength / 100 * AttackEnemyStrength <= '..(PlatoonStrength / 100 * AttackEnemyStrength)..' || EnemyStrength = '..EnemyStrength)
-                                    --LOG("The Enemy Strength is " .. repr(GetThreatsAroundPosition( aiBrain, TargetPosition, 0, true, 'AntiSurface')) ..  " " .. repr(TargetPosition))
                                     -- Only attack if we have a chance to win
-                                    if platoon.MovementLayer == 'Land' then
-                                        if PlatoonStrength / 100 * AttackEnemyStrength < EnemyStrength then 
-                                            continue 
-                                        end
-                                    elseif platoon.MovementLayer == 'Air' then
-                                        if PlatoonStrengthAir / 100 * AttackEnemyStrength < EnemyStrength then 
-                                            continue 
-                                        end
-                                    elseif platoon.MovementLayer == 'Water' then
-                                        if PlatoonStrength / 100 * AttackEnemyStrength < EnemyStrength then 
-                                            continue 
-                                        end
-                                    elseif platoon.MovementLayer == 'Amphibious' then
-                                        if PlatoonStrength / 100 * AttackEnemyStrength < EnemyStrength then 
-                                            continue 
-                                        end
-                                    end
+                                    if PlatoonStrength / 100 * AttackEnemyStrength < EnemyStrength then continue end
                                     --LOG('* AIFindNearestCategoryTargetInRange: PlatoonGenerateSafePathTo ')
                                     path, reason = AIAttackUtils.PlatoonGenerateSafePathTo(aiBrain, platoon.MovementLayer, position, TargetPosition, platoon.PlatoonData.NodeWeight or 10 )
+                                    --LOG('What is Reason ' .. repr(reason))
                                     -- Check if we found a path with markers
                                     if path then
                                         UnitWithPath = Target
@@ -297,7 +344,7 @@ end
 
 function AIFindNearestCategoryTargetInRangeCDRSwarm(aiBrain, position, maxRange, MoveToCategories, enemyBrain)
     if type(TargetSearchCategory) == 'string' then
-        TargetSearchCategory = SWARMPARSE(TargetSearchCategory)
+        TargetSearchCategory = ParseEntityCategory(TargetSearchCategory)
     end
     local enemyIndex = false
     local MyArmyIndex = aiBrain:GetArmyIndex()
@@ -319,7 +366,7 @@ function AIFindNearestCategoryTargetInRangeCDRSwarm(aiBrain, position, maxRange,
         for _, v in MoveToCategories do
             category = v
             if type(category) == 'string' then
-                category = SWARMPARSE(category)
+                category = ParseEntityCategory(category)
             end
             distance = maxRange
             --LOG('* AIFindNearestCategoryTargetInRangeSwarm: numTargets '..table.getn(TargetsInRange)..'  ')
@@ -362,6 +409,223 @@ function AIFindNearestCategoryTargetInRangeCDRSwarm(aiBrain, position, maxRange,
     return TargetUnit
 end
 
+function AIFindBrainTargetInRangeSwarm(aiBrain, platoon, squad, maxRange, atkPri, avoidbases, platoonThreat, index)
+    local position = platoon:GetPlatoonPosition()
+    local VDist2 = VDist2
+    if platoon.PlatoonData.GetTargetsFromBase then
+        --LOG('Looking for targets from position '..platoon.PlatoonData.LocationType)
+        position = aiBrain.BuilderManagers[platoon.PlatoonData.LocationType].Position
+    end
+    local enemyThreat, targetUnits, category
+    local RangeList = { [1] = maxRange }
+    if not aiBrain or not position or not maxRange then
+        return false
+    end
+    if not avoidbases then
+        avoidbases = false
+    end
+    if not platoon.MovementLayer then
+        AIAttackUtils.GetMostRestrictiveLayer(platoon)
+    end
+    
+    if maxRange > 512 then
+        RangeList = {
+            [1] = 30,
+            [1] = 64,
+            [2] = 128,
+            [2] = 192,
+            [3] = 256,
+            [3] = 384,
+            [4] = 512,
+            [5] = maxRange,
+        }
+    elseif maxRange > 256 then
+        RangeList = {
+            [1] = 30,
+            [1] = 64,
+            [2] = 128,
+            [2] = 192,
+            [3] = 256,
+            [4] = maxRange,
+        }
+    elseif maxRange > 64 then
+        RangeList = {
+            [1] = 30,
+            [2] = maxRange,
+        }
+    end
+
+    for _, range in RangeList do
+        targetUnits = GetUnitsAroundPoint(aiBrain, categories.ALLUNITS, position, range, 'Enemy')
+        for _, v in atkPri do
+            category = v
+            if type(category) == 'string' then
+                category = ParseEntityCategory(category)
+            end
+            local retUnit = false
+            local distance = false
+            local targetShields = 9999
+            for num, unit in targetUnits do
+                if index then
+                    for k, v in index do
+                        if unit:GetAIBrain():GetArmyIndex() == v then
+                            if not unit.Dead and not unit.CaptureInProgress and EntityCategoryContains(category, unit) and platoon:CanAttackTarget(squad, unit) then
+                                local unitPos = unit:GetPosition()
+                                if not retUnit or VDist2(position[1], position[3], unitPos[1], unitPos[3]) < distance then
+                                    retUnit = unit
+                                    distance = VDist2(position[1], position[3], unitPos[1], unitPos[3])
+                                end
+                                if platoon.MovementLayer == 'Air' and platoonThreat then
+                                    enemyThreat = GetThreatAtPosition( aiBrain, unitPos, aiBrain.IMAPConfigSwarm.Rings, true, 'AntiAir')
+                                    --LOG('Enemy Threat is '..enemyThreat..' and my threat is '..platoonThreat)
+                                    if enemyThreat > platoonThreat then
+                                        continue
+                                    end
+                                end
+                                local numShields = aiBrain:GetNumUnitsAroundPoint(categories.DEFENSE * categories.SHIELD * categories.STRUCTURE, unitPos, 46, 'Enemy')
+                                if not retUnit or numShields < targetShields or (numShields == targetShields and VDist2(position[1], position[3], unitPos[1], unitPos[3]) < distance) then
+                                    retUnit = unit
+                                    distance = VDist2(position[1], position[3], unitPos[1], unitPos[3])
+                                    targetShields = numShields
+                                end
+                            end
+                        end
+                    end
+                else
+                    if not unit.Dead and EntityCategoryContains(category, unit) and platoon:CanAttackTarget(squad, unit) then
+                        local unitPos = unit:GetPosition()
+                        if avoidbases then
+                            for _, w in ArmyBrains do
+                                if IsEnemy(w:GetArmyIndex(), aiBrain:GetArmyIndex()) or (aiBrain:GetArmyIndex() == w:GetArmyIndex()) then
+                                    local estartX, estartZ = w:GetArmyStartPos()
+                                    if VDist2Sq(estartX, estartZ, unitPos[1], unitPos[3]) < 22500 then
+                                        continue
+                                    end
+                                end
+                            end
+                        end
+                        if platoon.MovementLayer == 'Air' and platoonThreat then
+                            enemyThreat = GetThreatAtPosition( aiBrain, unitPos, aiBrain.BrainIntel.IMAPConfig.Rings, true, 'AntiAir')
+                            --LOG('Enemy Threat is '..enemyThreat..' and my threat is '..platoonThreat)
+                            if enemyThreat > platoonThreat then
+                                continue
+                            end
+                        end
+                        local numShields = aiBrain:GetNumUnitsAroundPoint(categories.DEFENSE * categories.SHIELD * categories.STRUCTURE, unitPos, 46, 'Enemy')
+                        if not retUnit or numShields < targetShields or (numShields == targetShields and VDist2(position[1], position[3], unitPos[1], unitPos[3]) < distance) then
+                            retUnit = unit
+                            distance = VDist2(position[1], position[3], unitPos[1], unitPos[3])
+                            targetShields = numShields
+                        end
+                    end
+                end
+            end
+            if retUnit and targetShields > 0 then
+                local platoonUnits = platoon:GetPlatoonUnits()
+                for _, w in platoonUnits do
+                    if not w.Dead then
+                        unit = w
+                        break
+                    end
+                end
+                local closestBlockingShield = AIBehaviors.GetClosestShieldProtectingTargetSorian(unit, retUnit)
+                if closestBlockingShield then
+                    return closestBlockingShield
+                end
+            end
+            if retUnit then
+                return retUnit
+            end
+        end
+        coroutine.yield(1)
+    end
+    return false
+end
+
+function AIFindBrainTargetInCloseRangeSwarm(aiBrain, platoon, position, squad, maxRange, targetQueryCategory, TargetSearchCategory, enemyBrain)
+    if type(TargetSearchCategory) == 'string' then
+        TargetSearchCategory = ParseEntityCategory(TargetSearchCategory)
+    end
+    local enemyIndex = false
+    local VDist2 = VDist2
+    local MyArmyIndex = aiBrain:GetArmyIndex()
+    if enemyBrain then
+        enemyIndex = enemyBrain:GetArmyIndex()
+    end
+    local acuPresent = false
+    local acuUnit = false
+    local RangeList = {
+        [1] = 10,
+        [2] = maxRange,
+        [3] = maxRange + 30,
+    }
+    local TargetUnit = false
+    local TargetsInRange, EnemyStrength, TargetPosition, category, distance, targetRange, baseTargetRange, canAttack
+    for _, range in RangeList do
+        if not position then
+            WARN('* AI-Swarm: AIFindNearestCategoryTargetInCloseRange: position is empty')
+            return false
+        end
+        if not range then
+            WARN('* AI-Swarm: AIFindNearestCategoryTargetInCloseRange: range is empty')
+            return false
+        end
+        if not TargetSearchCategory then
+            WARN('* AI-Swarm: AIFindNearestCategoryTargetInCloseRange: TargetSearchCategory is empty')
+            return false
+        end
+        TargetsInRange = GetUnitsAroundPoint(aiBrain, targetQueryCategory, position, range, 'Enemy')
+        --DrawCircle(position, range, '0000FF')
+        for _, v in TargetSearchCategory do
+            category = v
+            if type(category) == 'string' then
+                category = ParseEntityCategory(category)
+            end
+            distance = maxRange
+            --LOG('* AIFindNearestCategoryTargetInRange: numTargets '..SWARMGETN(TargetsInRange)..'  ')
+            for num, Target in TargetsInRange do
+                if Target.Dead or Target:BeenDestroyed() then
+                    continue
+                end
+                TargetPosition = Target:GetPosition()
+                EnemyStrength = 0
+                -- check if we have a special player as enemy
+                if enemyBrain and enemyIndex and enemyBrain ~= enemyIndex then continue end
+                if EntityCategoryContains(categories.COMMAND, Target) then
+                    acuPresent = true
+                    acuUnit = Target
+                end
+                -- check if the Target is still alive, matches our target priority and can be attacked from our platoon
+                if not Target.Dead and not Target.CaptureInProgress and EntityCategoryContains(category, Target) and platoon:CanAttackTarget(squad, Target) then
+                    -- yes... we need to check if we got friendly units with GetUnitsAroundPoint(_, _, _, 'Enemy')
+                    if not IsEnemy( MyArmyIndex, Target:GetAIBrain():GetArmyIndex() ) then continue end
+                    if Target.ReclaimInProgress then
+                        --WARN('* AIFindNearestCategoryTargetInRange: ReclaimInProgress !!! Ignoring the target.')
+                        continue
+                    end
+                    if Target.CaptureInProgress then
+                        --WARN('* AIFindNearestCategoryTargetInRange: CaptureInProgress !!! Ignoring the target.')
+                        continue
+                    end
+                    targetRange = VDist2(position[1],position[3],TargetPosition[1],TargetPosition[3])
+                    -- check if the target is in range of the unit and in range of the base
+                    if targetRange < distance then
+                        TargetUnit = Target
+                        distance = targetRange
+                    end
+                end
+            end
+            if TargetUnit then
+                --LOG('Target Found in target aquisition function')
+                return TargetUnit, acuPresent, acuUnit
+            end
+            SWARMWAIT(5)
+        end
+        SWARMWAIT(1)
+    end
+    --LOG('NO Target Found in target aquisition function')
+    return TargetUnit, acuPresent, acuUnit
+end
 
 function AIFindNearestCategoryTargetInCloseRangeSwarm(platoon, aiBrain, squad, position, maxRange, MoveToCategories, TargetSearchCategory, enemyBrain)
     local IgnoreTargetLayerCheck = platoon.PlatoonData.IgnoreTargetLayerCheck
@@ -433,6 +697,416 @@ function AIFindNearestCategoryTargetInCloseRangeSwarm(platoon, aiBrain, squad, p
         SWARMWAIT(5)
     end
     return TargetUnit
+end
+
+-- Huge Credits to Relent0r 
+function EngineerMoveWithSafePathSwarm(aiBrain, unit, destination)
+    if not destination then
+        return false
+    end
+    local pos = unit:GetPosition()
+    -- don't check a path if we are in build range
+    if VDist2(pos[1], pos[3], destination[1], destination[3]) < 12 then
+        return true
+    end
+
+    -- first try to find a path with markers. 
+    local result, bestPos
+    local path, reason = AIAttackUtils.EngineerGenerateSafePathToSwarm(aiBrain, 'Amphibious', pos, destination)
+    --LOG('EngineerGenerateSafePathToSwarm reason is'..reason)
+    -- only use CanPathTo for distance closer then 200 and if we can't path with markers
+    if reason ~= 'PathOK' then
+        -- we will crash the game if we use CanPathTo() on all engineer movments on a map without markers. So we don't path at all.
+        if reason == 'NoGraph' then
+            result = true
+        elseif VDist2(pos[1], pos[3], destination[1], destination[3]) < 200 then
+            SPEW('* AI-Swarm: EngineerMoveWithSafePath(): executing CanPathTo(). LUA GenerateSafePathTo returned: ('..repr(reason)..') '..VDist2(pos[1], pos[3], destination[1], destination[3]))
+            -- be really sure we don't try a pathing with a destoryed c-object
+            if unit.Dead or unit:BeenDestroyed() or IsDestroyed(unit) then
+                SPEW('* AI-Swarm: Unit is death before calling CanPathTo()')
+                return false
+            end
+            result, bestPos = unit:CanPathTo(destination)
+        end 
+    end
+    local bUsedTransports = false
+    -- Increase check to 300 for transports
+    if (not result and reason ~= 'PathOK') or VDist2Sq(pos[1], pos[3], destination[1], destination[3]) > 250 * 250
+    and unit.PlatoonHandle and not EntityCategoryContains(categories.COMMAND, unit) then
+        -- If we can't path to our destination, we need, rather than want, transports
+        local needTransports = not result and reason ~= 'PathOK'
+        if VDist2Sq(pos[1], pos[3], destination[1], destination[3]) > 250 * 250 then
+            needTransports = true
+        end
+
+        -- Skip the last move... we want to return and do a build
+        --LOG('run SendPlatoonWithTransportsNoCheck')
+        unit.WaitingForTransport = true
+        bUsedTransports = AIAttackUtils.SendPlatoonWithTransportsNoCheck(aiBrain, unit.PlatoonHandle, destination, needTransports, true, false)
+        unit.WaitingForTransport = false
+        --LOG('finish SendPlatoonWithTransportsNoCheck')
+
+        if bUsedTransports then
+            return true
+        elseif VDist2Sq(pos[1], pos[3], destination[1], destination[3]) > 512 * 512 then
+            -- If over 512 and no transports dont try and walk!
+            return false
+        end
+    end
+
+    -- If we're here, we haven't used transports and we can path to the destination
+    if result or reason == 'PathOK' then
+        --LOG('* AI-Swarm: EngineerMoveWithSafePath(): result or reason == PathOK ')
+        if reason ~= 'PathOK' then
+            path, reason = AIAttackUtils.EngineerGenerateSafePathToSwarm(aiBrain, 'Amphibious', pos, destination)
+        end
+        if path then
+            --LOG('* AI-Swarm: EngineerMoveWithSafePath(): path 0 true')
+            local pathSize = SWARMGETN(path)
+            -- Move to way points (but not to destination... leave that for the final command)
+            for widx, waypointPath in path do
+                IssueMove({unit}, waypointPath)
+            end
+            IssueMove({unit}, destination)
+        else
+            IssueMove({unit}, destination)
+        end
+        return true
+    end
+    return false
+end
+
+-- Huge Credits to Chp2001
+function EngineerMoveWithSafePathSwarmAdvanced(aiBrain, eng, destination, whatToBuildM)
+    if not destination then
+        return false
+    end
+    local pos = eng:GetPosition()
+    -- don't check a path if we are in build range
+    if VDist2Sq(pos[1], pos[3], destination[1], destination[3]) < 144 then
+        return true
+    end
+
+    -- first try to find a path with markers. 
+    local result, bestPos
+    local path, reason = AIAttackUtils.EngineerGenerateSafePathToSwarm(aiBrain, 'Amphibious', pos, destination, nil, 300)
+    --LOG('EngineerGenerateSafePathToSwarm reason is'..reason)
+    -- only use CanPathTo for distance closer then 200 and if we can't path with markers
+    if reason ~= 'PathOK' then
+        -- we will crash the game if we use CanPathTo() on all engineer movments on a map without markers. So we don't path at all.
+        if reason == 'NoGraph' then
+            result = true
+        elseif VDist2Sq(pos[1], pos[3], destination[1], destination[3]) < 300*300 then
+            SPEW('* AI-Swarm: EngineerMoveWithSafePath(): executing CanPathTo(). LUA GenerateSafePathTo returned: ('..repr(reason)..') '..VDist2Sq(pos[1], pos[3], destination[1], destination[3]))
+            -- be really sure we don't try a pathing with a destoryed c-object
+            if eng.Dead or eng:BeenDestroyed() or IsDestroyed(eng) then
+                SPEW('* AI-Swarm: Unit is death before calling CanPathTo()')
+                return false
+            end
+            result, bestPos = eng:CanPathTo(destination)
+        end 
+    end
+    --LOG('EngineerGenerateSafePathToSwarm move to next bit')
+    local bUsedTransports = false
+    -- Increase check to 300 for transports
+    if (not result and reason ~= 'PathOK') or VDist2Sq(pos[1], pos[3], destination[1], destination[3]) > 300 * 300
+    and eng.PlatoonHandle and not EntityCategoryContains(categories.COMMAND, eng) then
+        -- If we can't path to our destination, we need, rather than want, transports
+        local needTransports = not result and reason ~= 'PathOK'
+        if VDist2Sq(pos[1], pos[3], destination[1], destination[3]) > 300 * 300 then
+            needTransports = true
+        end
+
+        -- Skip the last move... we want to return and do a build
+        --LOG('run SendPlatoonWithTransportsNoCheck')
+        eng.WaitingForTransport = true
+        bUsedTransports = AIAttackUtils.SendPlatoonWithTransportsNoCheck(aiBrain, eng.PlatoonHandle, destination, needTransports, true, false)
+        eng.WaitingForTransport = false
+        --LOG('finish SendPlatoonWithTransportsNoCheck')
+
+        if bUsedTransports then
+            return true
+        elseif VDist2Sq(pos[1], pos[3], destination[1], destination[3]) > 512 * 512 then
+            -- If over 512 and no transports dont try and walk!
+            return false
+        end
+    end
+
+    -- If we're here, we haven't used transports and we can path to the destination
+    if result or reason == 'PathOK' then
+        --LOG('* AI-Swarm: EngineerMoveWithSafePath(): result or reason == PathOK ')
+        if reason ~= 'PathOK' then
+            path, reason = AIAttackUtils.EngineerGenerateSafePathToSwarm(aiBrain, 'Amphibious', pos, destination)
+        end
+        if path then
+            --LOG('We have a path')
+            if not whatToBuildM then
+                local cons = eng.PlatoonHandle.PlatoonData.Construction
+                local buildingTmpl, buildingTmplFile, baseTmpl, baseTmplFile, baseTmplDefault
+                local factionIndex = aiBrain:GetFactionIndex()
+                buildingTmplFile = import(cons.BuildingTemplateFile or '/lua/BuildingTemplates.lua')
+                baseTmplFile = import(cons.BaseTemplateFile or '/lua/BaseTemplates.lua')
+                baseTmplDefault = import('/lua/BaseTemplates.lua')
+                buildingTmpl = buildingTmplFile[(cons.BuildingTemplate or 'BuildingTemplates')][factionIndex]
+                baseTmpl = baseTmplFile[(cons.BaseTemplate or 'BaseTemplates')][factionIndex]
+                whatToBuildM = aiBrain:DecideWhatToBuild(eng, 'T1Resource', buildingTmpl)
+            end
+            --LOG('* AI-Swarm: EngineerMoveWithSafePath(): path 0 true')
+            local pathSize = SWARMGETN(path)
+            -- Move to way points (but not to destination... leave that for the final command)
+            --LOG('We are issuing move commands for the path')
+            for widx, waypointPath in path do
+                if widx>=3 then
+                    local bool,markers=MABC.CanBuildOnMassEngSwarm(aiBrain, waypointPath, 30)
+                    if bool then
+                        --LOG('We can build on a mass marker within 30')
+                        --local massMarker = SwarmUtils.GetClosestMassMarkerToPos(aiBrain, waypointPath)
+                        --LOG('Mass Marker'..repr(massMarker))
+                        --LOG('Attempting second mass marker')
+                        for _,massMarker in markers do
+                        SwarmUtils.EngineerTryReclaimCaptureAreaSwarm(aiBrain, eng, massMarker.Position)
+                        EngineerTryRepair(aiBrain, eng, whatToBuildM, massMarker.Position)
+                        aiBrain:BuildStructure(eng, whatToBuildM, {massMarker.Position[1], massMarker.Position[3], 0}, false)
+                        local newEntry = {whatToBuildM, {massMarker.Position[1], massMarker.Position[3], 0}, false}
+                        SWARMINSERT(eng.EngineerBuildQueue, newEntry)
+                        end
+                    end
+                end
+                if (widx - SWARMFLOOR(widx/2)*2)==0 or VDist3Sq(destination,waypointPath)<40*40 then continue end
+                IssueMove({eng}, waypointPath)
+            end
+            IssueMove({eng}, destination)
+        else
+            IssueMove({eng}, destination)
+        end
+        return true
+    end
+    return false
+end
+
+function UseTransportsSwarm(units, transports, location, transportPlatoon)
+    local aiBrain
+    for k, v in units do
+        if not v.Dead then
+            aiBrain = v:GetAIBrain()
+            break
+        end
+    end
+
+    if not aiBrain then
+        return false
+    end
+
+    -- Load transports
+    local transportTable = {}
+    local transSlotTable = {}
+    if not transports then
+        return false
+    end
+
+    IssueClearCommands(transports)
+
+    for num, unit in transports do
+        local id = unit.UnitId
+        if not transSlotTable[id] then
+            transSlotTable[id] = GetNumTransportSlots(unit)
+        end
+        SWARMINSERT(transportTable,
+            {
+                Transport = unit,
+                LargeSlots = transSlotTable[id].Large,
+                MediumSlots = transSlotTable[id].Medium,
+                SmallSlots = transSlotTable[id].Small,
+                Units = {}
+            }
+        )
+    end
+
+    local shields = {}
+    local remainingSize3 = {}
+    local remainingSize2 = {}
+    local remainingSize1 = {}
+    local pool = aiBrain:GetPlatoonUniquelyNamed('ArmyPool')
+    for num, unit in units do
+        if not unit.Dead then
+            if unit:IsUnitState('Attached') then
+                aiBrain:AssignUnitsToPlatoon(pool, {unit}, 'Unassigned', 'None')
+            elseif EntityCategoryContains(categories.url0306 + categories.DEFENSE, unit) then
+                SWARMINSERT(shields, unit)
+            elseif unit:GetBlueprint().Transport.TransportClass == 3 then
+                SWARMINSERT(remainingSize3, unit)
+            elseif unit:GetBlueprint().Transport.TransportClass == 2 then
+                SWARMINSERT(remainingSize2, unit)
+            elseif unit:GetBlueprint().Transport.TransportClass == 1 then
+                SWARMINSERT(remainingSize1, unit)
+            else
+                SWARMINSERT(remainingSize1, unit)
+            end
+        end
+    end
+
+    local needed = GetNumTransports(units)
+    local largeHave = 0
+    for num, data in transportTable do
+        largeHave = largeHave + data.LargeSlots
+    end
+
+    local leftoverUnits = {}
+    local currLeftovers = {}
+    local leftoverShields = {}
+    transportTable, leftoverShields = SortUnitsOnTransports(transportTable, shields, largeHave - needed.Large)
+
+    transportTable, leftoverUnits = SortUnitsOnTransports(transportTable, remainingSize3, -1)
+
+    transportTable, currLeftovers = SortUnitsOnTransports(transportTable, leftoverShields, -1)
+
+    for _, v in currLeftovers do SWARMINSERT(leftoverUnits, v) end
+    transportTable, currLeftovers = SortUnitsOnTransports(transportTable, remainingSize2, -1)
+
+    for _, v in currLeftovers do SWARMINSERT(leftoverUnits, v) end
+    transportTable, currLeftovers = SortUnitsOnTransports(transportTable, remainingSize1, -1)
+
+    for _, v in currLeftovers do SWARMINSERT(leftoverUnits, v) end
+    transportTable, currLeftovers = SortUnitsOnTransports(transportTable, currLeftovers, -1)
+
+    aiBrain:AssignUnitsToPlatoon(pool, currLeftovers, 'Unassigned', 'None')
+    if transportPlatoon then
+        transportPlatoon.UsingTransport = true
+    end
+
+    local monitorUnits = {}
+    for num, data in transportTable do
+        if SWARMGETN(data.Units) > 0 then
+            IssueClearCommands(data.Units)
+            IssueTransportLoad(data.Units, data.Transport)
+            for k, v in data.Units do SWARMINSERT(monitorUnits, v) end
+        end
+    end
+
+    local attached = true
+    repeat
+        SWARMWAIT(20)
+        local allDead = true
+        local transDead = true
+        for k, v in units do
+            if not v.Dead then
+                allDead = false
+                break
+            end
+        end
+        for k, v in transports do
+            if not v.Dead then
+                transDead = false
+                break
+            end
+        end
+        if allDead or transDead then return false end
+        attached = true
+        for k, v in monitorUnits do
+            if not v.Dead and not v:IsIdleState() then
+                attached = false
+                break
+            end
+        end
+    until attached
+
+    -- Any units that aren't transports and aren't attached send back to pool
+    for k, unit in units do
+        if not unit.Dead and not EntityCategoryContains(categories.TRANSPORTATION, unit) then
+            if not unit:IsUnitState('Attached') then
+                aiBrain:AssignUnitsToPlatoon(pool, {unit}, 'Unassigned', 'None')
+            end
+        elseif not unit.Dead and EntityCategoryContains(categories.TRANSPORTATION, unit) and SWARMGETN(unit:GetCargo()) < 1 then
+            ReturnTransportsToPool({unit}, true)
+            SWARMREMOVE(transports, k)
+        end
+    end
+
+    -- If some transports have no units return to pool
+    for k, t in transports do
+        if not t.Dead and SWARMGETN(t:GetCargo()) < 1 then
+            aiBrain:AssignUnitsToPlatoon('ArmyPool', {t}, 'Scout', 'None')
+            SWARMREMOVE(transports, k)
+        end
+    end
+
+    if SWARMGETN(transports) ~= 0 then
+        -- If no location then we have loaded transports then return true
+        if location then
+            local safePath = AIAttackUtils.PlatoonGenerateSafePathToSwarm(aiBrain, 'Air', transports[1]:GetPosition(), location, 200)
+            if safePath then
+                for _, p in safePath do
+                    IssueMove(transports, p)
+                end
+            end
+        else
+            if transportPlatoon then
+                transportPlatoon.UsingTransport = false
+            end
+            return true
+        end
+    else
+        -- If no transports return false
+        if transportPlatoon then
+            transportPlatoon.UsingTransport = false
+        end
+        return false
+    end
+
+    -- Adding Surface Height, so thetransporter get not confused, because the target is under the map (reduces unload time)
+    location = {location[1], GetSurfaceHeight(location[1],location[3]), location[3]}
+    IssueTransportUnload(transports, location)
+    local attached = true
+    while attached do
+        WaitSeconds(2)
+        local allDead = true
+        for _, v in transports do
+            if not v.Dead then
+                allDead = false
+                break
+            end
+        end
+
+        if allDead then
+            return false
+        end
+
+        attached = false
+        for num, unit in units do
+            if not unit.Dead and unit:IsUnitState('Attached') then
+                attached = true
+                break
+            end
+        end
+    end
+
+    if transportPlatoon then
+        transportPlatoon.UsingTransport = false
+    end
+    ReturnTransportsToPool(transports, true)
+
+    return true
+end
+
+function RandomLocation(x, z)
+    local finalX = x + Random(-30, 30)
+    while finalX <= 0 or finalX >= ScenarioInfo.size[1] do
+        finalX = x + Random(-30, 30)
+    end
+
+    local finalZ = z + Random(-30, 30)
+    while finalZ <= 0 or finalZ >= ScenarioInfo.size[2] do
+        finalZ = z + Random(-30, 30)
+    end
+
+    local movePos = {finalX, 0, finalZ}
+    local height = GetTerrainHeight(movePos[1], movePos[3])
+    if GetSurfaceHeight(movePos[1], movePos[3]) > height then
+        height = GetSurfaceHeight(movePos[1], movePos[3])
+    end
+    movePos[2] = height
+
+    return movePos
 end
 
 function points(original,radius,num)

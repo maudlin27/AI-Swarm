@@ -29,7 +29,7 @@ BaseBuilderTemplate {
         -- Assistees
         'Swarm Engineer Assistees',
         -- Reclaim mass
-        'Swarm Engineer Reclaim',
+        'Swarm Engineer Reclaim Expansion',
 
         -----------------------------------------------------------------------------
         -- ==== Mass ==== --
@@ -42,8 +42,8 @@ BaseBuilderTemplate {
         -----------------------------------------------------------------------------
         -- ==== Energy ==== --
         -----------------------------------------------------------------------------
-        -- Build Power Tech 1,2,3
-        'S123 Energy Builders',                       -- Priority = 1100
+        -- Build Power Tech 2 & 3
+        'SExpansion23 Energy Builders',                       
 
         -----------------------------------------------------------------------------
         -- ==== Factory ==== --
@@ -51,7 +51,7 @@ BaseBuilderTemplate {
         -- Build Land/Air Factories
         'Swarm Adaptive Factory Build',
         -- Upgrade Factories TECH1->TECH2 and TECH2->TECH3
-        'Swarm Factory Upgrader Rush',
+        --'Swarm Factory Upgrader Rush',
         'Swarm Gate Builders',
 
         -----------------------------------------------------------------------------
@@ -103,7 +103,6 @@ BaseBuilderTemplate {
         'Strategic Platoon Formers',
         'Swarm T2 Tactical Missile Defenses Builder',
         'Swarm SMD Builder',
-        'Swarm Defense Plus Builders',
         'Swarm Defense Plus Builders Expansion',
         
         -- Build Anti Air near AirFactories
@@ -137,15 +136,15 @@ BaseBuilderTemplate {
 
     BaseSettings = {
         FactoryCount = {
-            Land = 0,
-            Air = 0,
+            Land = 8,
+            Air = 4,
             Sea = 0,
-            Gate = 2,
+            Gate = 1,
         },
         EngineerCount = {
-            Tech1 = 2,
-            Tech2 = 3,
-            Tech3 = 3,
+            Tech1 = 6,
+            Tech2 = 2,
+            Tech3 = 2,
             SCU = 10,
         },
         MassToFactoryValues = {

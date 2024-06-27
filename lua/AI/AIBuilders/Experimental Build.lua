@@ -1,7 +1,6 @@
 local EBC = '/lua/editor/EconomyBuildConditions.lua'
 local UCBC = '/lua/editor/UnitCountBuildConditions.lua'
 local MIBC = '/lua/editor/MiscBuildConditions.lua'
-local SBC = '/lua/editor/SorianBuildConditions.lua'
 local BasePanicZone, BaseMilitaryZone, BaseEnemyZone = import('/mods/AI-Swarm/lua/AI/swarmutilities.lua').GetDangerZoneRadii()
 
 -----------------------------
@@ -9,15 +8,20 @@ local BasePanicZone, BaseMilitaryZone, BaseEnemyZone = import('/mods/AI-Swarm/lu
 -----------------------------
 
 -- Yet another reduction to Experimental Econ Efficiency :)
--- from { EBC, 'GreaterThanEconEfficiencyOverTime', { 1.03, 1.04 }},
--- to { EBC, 'GreaterThanEconEfficiencyOverTime', { 1.02, 1.03 }},
+-- from { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.03, 1.04 }},
+-- to { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.02, 1.03 }},
+
+-- Yet another reduction to Experimental Econ Efficiency :)
+-- from { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.02, 1.03 }},
+-- to { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.01, 1.02 }},
+-- Hopefully Encourage A Choice between Nukes & Experimentals and not always Nukes First!
 
 BuilderGroup { BuilderGroupName = 'Swarm Air Experimental Builders',                          
     BuildersType = 'EngineerBuilder',
         
     Builder { BuilderName = 'S Air Experimental',
 
-        PlatoonTemplate = 'T3EngineerBuilderSUB',
+        PlatoonTemplate = 'T3EngineerBuilderSUBSwarm',
 
         Priority = 950,
 
@@ -26,17 +30,21 @@ BuilderGroup { BuilderGroupName = 'Swarm Air Experimental Builders',
         BuilderConditions = {
             { UCBC, 'UnitCapCheckLess', { 0.90 } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 1.02, 1.03 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.01, 1.02 }},
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.02, 0.1}},
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
+
+            { EBC, 'GreaterThanEnergyIncomeOverTimeSwarm', { 750 }},
+
+            { EBC, 'GreaterThanEnergyTrendOverTimeSwarm', { 0.0 } },  
             
-            { EBC, 'GreaterThanMassTrendSwarm', { 0.0 } },
+            { EBC, 'GreaterThanMassTrendOverTimeSwarm', { 0.0 } },
         },
         BuilderType = 'Any',
 
         BuilderData = {
 
-            NumAssistees = 3,
+            NumAssistees = 5,
             
             Construction = {
 
@@ -57,7 +65,7 @@ BuilderGroup { BuilderGroupName = 'Swarm Air Experimental Builders',
     
     Builder { BuilderName = 'S Air Experimental - Satellite',
 
-        PlatoonTemplate = 'T3EngineerBuilderSUB',
+        PlatoonTemplate = 'T3EngineerBuilderSUBSwarm',
 
         Priority = 950,
 
@@ -66,11 +74,15 @@ BuilderGroup { BuilderGroupName = 'Swarm Air Experimental Builders',
         BuilderConditions = {
             { UCBC, 'UnitCapCheckLess', { 0.90 } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 1.02, 1.03 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.01, 1.02 }},
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.02, 0.1}},
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
 
-            { EBC, 'GreaterThanMassTrendSwarm', { 0.0 } },
+            { EBC, 'GreaterThanEnergyIncomeOverTimeSwarm', { 750 }},
+
+            { EBC, 'GreaterThanEnergyTrendOverTimeSwarm', { 0.0 } },  
+
+            { EBC, 'GreaterThanMassTrendOverTimeSwarm', { 0.0 } },
 
             { MIBC, 'GreaterThanGameTime', { 3600 } }, -- Need to figure out a better restriction for Satellite --
         },
@@ -78,7 +90,7 @@ BuilderGroup { BuilderGroupName = 'Swarm Air Experimental Builders',
 
         BuilderData = {
 
-            NumAssistees = 1,
+            NumAssistees = 5,
             
             Construction = {
 
@@ -103,29 +115,33 @@ BuilderGroup { BuilderGroupName = 'Swarm Land Experimental Builders',
     Builder {
         BuilderName = 'S Land Experimental - 3',
 
-        PlatoonTemplate = 'T3EngineerBuilderSUB',
+        PlatoonTemplate = 'T3EngineerBuilderSUBSwarm',
 
         Priority = 950,
 
         InstanceCount = 1,
 
         BuilderConditions = {
-        	{ UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 2, categories.EXPERIMENTAL * categories.LAND}},   	
+        	{ UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.EXPERIMENTAL * categories.LAND}},   	
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
-            { EBC, 'GreaterThanMassTrendSwarm', { 0.0 } },
+            { EBC, 'GreaterThanEnergyIncomeOverTimeSwarm', { 750 }},
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 1.02, 1.03 }},
+            { EBC, 'GreaterThanEnergyTrendOverTimeSwarm', { 0.0 } },  
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.02, 0.1}},
+            { EBC, 'GreaterThanMassTrendOverTimeSwarm', { 0.0 } },
+
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.01, 1.02 }},
+
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
         },
 
         BuilderType = 'Any',
 
         BuilderData = {
 
-            NumAssistees = 2,
+            NumAssistees = 8,
             
             Construction = {
 
@@ -150,24 +166,28 @@ BuilderGroup { BuilderGroupName = 'Swarm Land Experimental Builders',
     Builder {
         BuilderName = 'S Land Experimental - 2',
 
-        PlatoonTemplate = 'T3EngineerBuilderSUB',
+        PlatoonTemplate = 'T3EngineerBuilderSUBSwarm',
 
         Priority = 950,
 
-        InstanceCount = 1,
+        InstanceCount = 7,
 
         BuilderConditions = {
             { MIBC, 'FactionIndex', { 1, 2, 4, 5 }}, -- 1: UEF, 2: Aeon, 3: Cybran, 4: Seraphim, 5: Nomads 
 
-        	{ UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 2, categories.EXPERIMENTAL * categories.LAND}},
+        	{ UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.EXPERIMENTAL * categories.LAND}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 1.02, 1.03 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.01, 1.02 }},
 
-            { EBC, 'GreaterThanMassTrendSwarm', { 0.0 } },
+            { EBC, 'GreaterThanEnergyIncomeOverTimeSwarm', { 750 }},
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.02, 0.1}},
+            { EBC, 'GreaterThanEnergyTrendOverTimeSwarm', { 0.0 } },  
+
+            { EBC, 'GreaterThanMassTrendOverTimeSwarm', { 0.0 } },
+
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
         },
 
         BuilderType = 'Any',
@@ -199,29 +219,88 @@ BuilderGroup { BuilderGroupName = 'Swarm Land Experimental Builders',
     Builder {
         BuilderName = 'S Land Experimental',
 
-        PlatoonTemplate = 'T3EngineerBuilderSUB',
+        PlatoonTemplate = 'T3EngineerBuilderSUBSwarm',
 
         Priority = 950,
 
         InstanceCount = 1,
 
         BuilderConditions = {
-        	{ UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 2, categories.EXPERIMENTAL * categories.LAND}},
+        	{ UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.EXPERIMENTAL * categories.LAND}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
             
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 1.02, 1.03 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.01, 1.02 }},
 
-            { EBC, 'GreaterThanMassTrendSwarm', { 0.0 } },
+            { EBC, 'GreaterThanEnergyIncomeOverTimeSwarm', { 750 }},
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.02, 0.1}},
+            { EBC, 'GreaterThanEnergyTrendOverTimeSwarm', { 0.0 } },  
+
+            { EBC, 'GreaterThanMassTrendOverTimeSwarm', { 0.0 } },
+
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
         },
 
         BuilderType = 'Any',
 
         BuilderData = {
 
-            NumAssistees = 3,
+            NumAssistees = 6,
+            
+            Construction = {
+
+                DesiresAssist = true,
+
+                BuildClose = true,
+
+                AdjacencyCategory = categories.STRUCTURE * categories.SHIELD,
+
+                BuildStructures = {
+
+                    'T4LandExperimental1',
+
+                },
+
+                Location = 'LocationType',
+
+            }
+        }
+    },
+
+    Builder {
+        BuilderName = 'S Land Experimental - Rush',
+
+        PlatoonTemplate = 'T3EngineerBuildernoSUBSwarm',
+
+        Priority = 950,
+
+        InstanceCount = 1,
+
+        BuilderConditions = {
+            { UCBC, 'BuildOnlyOnLocationSwarm', { 'LocationType', 'MAIN' } },
+            
+            { UCBC, 'HaveLessThanUnitsWithCategory', { 1, categories.ENGINEERPRESET + categories.RASPRESET } },
+
+        	{ UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.EXPERIMENTAL * categories.LAND}},
+
+            { UCBC, 'UnitCapCheckLess', { 0.95 } },
+            
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.03, 1.04 }},
+
+            { EBC, 'GreaterThanEnergyIncomeOverTimeSwarm', { 500 }},
+
+            { EBC, 'GreaterThanEnergyTrendOverTimeSwarm', { 0.0 } },   
+
+            { EBC, 'GreaterThanMassTrendOverTimeSwarm', { 0.0 } },
+
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
+        },
+
+        BuilderType = 'Any',
+
+        BuilderData = {
+
+            NumAssistees = 5,
             
             Construction = {
 
@@ -253,22 +332,26 @@ BuilderGroup { BuilderGroupName = 'Swarm Naval Experimental Builders',
     
     Builder { BuilderName = 'S Water Experimental',
 
-        PlatoonTemplate = 'T3EngineerBuilderSUB',
+        PlatoonTemplate = 'T3EngineerBuilderSUBSwarm',
 
         Priority = 950,
 
         InstanceCount = 2,
 
         BuilderConditions = {
-            { UCBC, 'HaveGreaterThanUnitsWithCategory', { 0, categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH3 } },            
-
-            { EBC, 'GreaterThanMassTrendSwarm', { 0.0 } },
-
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 1.02, 1.03 }},      
+            { UCBC, 'HaveGreaterThanUnitsWithCategory', { 0, categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH3 } },   
             
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.02, 0.1}},
+            { EBC, 'GreaterThanEnergyIncomeOverTimeSwarm', { 750 }},
 
-            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 2, categories.MOBILE * categories.EXPERIMENTAL }},
+            { EBC, 'GreaterThanEnergyTrendOverTimeSwarm', { 0.0 } },   
+
+            { EBC, 'GreaterThanMassTrendOverTimeSwarm', { 0.0 } },
+
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.02, 1.03 }},      
+            
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
+
+            { UCBC, 'HaveLessThanUnitsInCategoryBeingBuilt', { 1, categories.MOBILE * categories.EXPERIMENTAL }},
         },
         BuilderType = 'Any',
 
@@ -323,7 +406,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Air Experimental Formers',
 
             TargetSearchCategory = categories.STRUCTURE + categories.MOBILE + categories.ECONOMIC,   
 
-            MoveToCategories = {                                                
+            MoveToCategories = {     
+                categories.COMMAND,
+
                 categories.STRUCTURE * categories.EXPERIMENTAL * categories.ECONOMIC,
 
                 categories.STRUCTURE * categories.EXPERIMENTAL,
@@ -376,7 +461,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Air Experimental Formers',
 
             TargetSearchCategory = categories.STRUCTURE + categories.MOBILE + categories.ECONOMIC,  
 
-            MoveToCategories = {                                               
+            MoveToCategories = {      
+                categories.COMMAND,
+                
                 categories.STRUCTURE * categories.EXPERIMENTAL * categories.ECONOMIC,
 
                 categories.STRUCTURE * categories.EXPERIMENTAL,
@@ -431,7 +518,8 @@ BuilderGroup { BuilderGroupName = 'Swarm Land Experimental Formers',
 
             TargetSearchCategory = categories.ALLUNITS - categories.WALL - categories.NAVAL - categories.MASSEXTRACTION,        
 
-            MoveToCategories = {                        
+            MoveToCategories = {         
+                categories.COMMAND,
 
                 categories.STRUCTURE * categories.EXPERIMENTAL * categories.ECONOMIC,
 
@@ -484,7 +572,8 @@ BuilderGroup { BuilderGroupName = 'Swarm Land Experimental Formers',
 
             TargetSearchCategory = categories.ALLUNITS - categories.WALL - categories.NAVAL - categories.MASSEXTRACTION,   
 
-            MoveToCategories = {     
+            MoveToCategories = {
+                categories.COMMAND,
 
                 categories.STRUCTURE * categories.EXPERIMENTAL * categories.ECONOMIC,
 

@@ -3,8 +3,6 @@ local EBC = '/lua/editor/EconomyBuildConditions.lua'
 local MIBC = '/lua/editor/MiscBuildConditions.lua'
 local BasePanicZone, BaseMilitaryZone, BaseEnemyZone = import('/mods/AI-Swarm/lua/AI/swarmutilities.lua').GetDangerZoneRadii()
 
-local MaxAttackForce = 0.45     
-
 -- this function will turn a builder off if the enemy is not active in the water
 local IsEnemyNavalActive = function( self, aiBrain, manager )
 
@@ -73,9 +71,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Naval Builders',
         BuilderConditions = {
             { UCBC, 'NavalStrengthRatioLessThan', { 3 } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.8, 0.9 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 0.95, 1.0 }},
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.01, 0.10}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
@@ -97,9 +95,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Naval Builders',
         BuilderConditions = {
             { UCBC, 'NavalStrengthRatioLessThan', { 3 } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.8, 0.9 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 0.95, 1.0 }},
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.01, 0.10}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
@@ -124,9 +122,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Naval Builders',
         BuilderConditions = {
             { UCBC, 'NavalStrengthRatioLessThan', { 3 } },
 
-        	{ EBC, 'GreaterThanEconEfficiencyOverTime', { 0.8, 0.9 }},
+        	{ EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }},
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.01, 0.10}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
@@ -148,9 +146,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Naval Builders',
         BuilderConditions = {
             { UCBC, 'NavalStrengthRatioLessThan', { 3 } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.8, 0.9 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }},
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.01, 0.10}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
@@ -172,9 +170,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Naval Builders',
         BuilderConditions = {
             { UCBC, 'AirStrengthRatioLessThan', { 1.5 } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.8, 0.9 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }},
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.01, 0.10}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
@@ -196,9 +194,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Naval Builders',
         BuilderConditions = {
             { UCBC, 'NavalStrengthRatioLessThan', { 3 } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.8, 0.9 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }},
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.01, 0.10}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
@@ -220,9 +218,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Naval Builders',
         BuilderConditions = {
             { UCBC, 'NavalStrengthRatioLessThan', { 3 } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.8, 0.9 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }},
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.01, 0.10}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
@@ -244,9 +242,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Naval Builders',
         BuilderConditions = {
             { UCBC, 'NavalStrengthRatioLessThan', { 3 } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.8, 0.9 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }},
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.01, 0.10}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
@@ -267,9 +265,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Naval Builders',
         Priority = 500,
 
         BuilderConditions = {
-        	{ EBC, 'GreaterThanEconEfficiencyOverTime', { 0.8, 0.9 }},
+        	{ EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }},
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.01, 0.10}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
@@ -289,9 +287,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Naval Builders',
         PriorityFunction = IsEnemyNavalActive,
 
         BuilderConditions = {
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.8, 0.9 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }},
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.01, 0.10}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
@@ -313,9 +311,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Naval Builders',
 
             { UCBC, 'HaveGreaterThanUnitsWithCategory', { 1, categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH3 } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.8, 0.9 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }},
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.01, 0.10}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
@@ -333,9 +331,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Naval Builders',
         PriorityFunction = IsEnemyNavalActive,
 
         BuilderConditions = {
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.8, 0.9 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }},
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.01, 0.10}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
@@ -351,9 +349,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Naval Builders',
         Priority = 500,
 
         BuilderConditions = {
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.8, 0.9 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.0 }},
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.01, 0.10}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
@@ -370,9 +368,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Naval Builders',
         Priority = 500,
 
         BuilderConditions = {
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 1.15, 1.15 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.25, 1.3 }},
 
-            { EBC, 'GreaterThanEconStorageCurrent', { 200, 2000}},
+            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.01, 0.10}},
 
             { UCBC, 'UnitCapCheckLess', { 0.95 } },
 
@@ -394,7 +392,7 @@ BuilderGroup { BuilderGroupName = 'Swarm Sonar Builders',
     
     Builder { BuilderName = 'S1 Sonar',
 
-        PlatoonTemplate = 'EngineerBuilder',
+        PlatoonTemplate = 'T1EngineerBuilderSwarm',
 
         Priority = 200,
 
@@ -404,8 +402,12 @@ BuilderGroup { BuilderGroupName = 'Swarm Sonar Builders',
             { UCBC, 'PoolGreaterAtLocation', { 'LocationType', 0, categories.ENGINEER * categories.TECH1 }},
 
             { UCBC, 'HaveGreaterThanUnitsWithCategory', { 1, categories.STRUCTURE * categories.FACTORY * categories.NAVAL } },
+
+            { EBC, 'GreaterThanEconTrendOverTimeSwarm', { 0.0, 0.0 } }, 
+
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.01 }},
             
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.40, 0.90 } },
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
         },
 
         BuilderType = 'Any',
@@ -439,9 +441,11 @@ BuilderGroup { BuilderGroupName = 'Swarm Sonar Upgraders',
         BuilderConditions = {
             { UCBC, 'HaveGreaterThanUnitsWithCategory', { 0, categories.SONAR * categories.TECH1}},
 
-            { EBC, 'GreaterThanEconTrendSwarm', { 0.0, 0.0 } }, 
+            { EBC, 'GreaterThanEconTrendOverTimeSwarm', { 0.0, 0.0 } }, 
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.90, 0.90 } },  
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.01 }},
+
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
         },
 
         BuilderType = 'Any',
@@ -459,9 +463,11 @@ BuilderGroup { BuilderGroupName = 'Swarm Sonar Upgraders',
             
             { MIBC, 'FactionIndex', { 1, 2, 3, 5 }},
 
-            { EBC, 'GreaterThanEconTrendSwarm', { 0.0, 0.0 } }, 
+            { EBC, 'GreaterThanEconTrendOverTimeSwarm', { 0.0, 0.0 } }, 
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.90, 0.90 } },
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.01 }},
+
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
         },
 
         BuilderType = 'Any',

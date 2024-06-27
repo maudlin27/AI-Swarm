@@ -3,8 +3,6 @@ local EBC = '/lua/editor/EconomyBuildConditions.lua'
 local MIBC = '/lua/editor/MiscBuildConditions.lua'
 local BasePanicZone, BaseMilitaryZone, BaseEnemyZone = import('/mods/AI-Swarm/lua/AI/swarmutilities.lua').GetDangerZoneRadii(true)
 
-local MaxCapFactory = 0.5 -- 0.5% of all units can be factories (STRUCTURE * FACTORY)
-
 -- WaterMap Builders are just generally outdated, all of this needs a complete rewrite and cleaning.
 -- Add a Watermap Ratio Condition to replace CanPathTo
 
@@ -16,9 +14,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Transports - Water Map',               
         PlatoonTemplate = 'T1AirTransport',
         Priority = 550, 
         BuilderConditions = {
-            { EBC, 'GreaterThanEconTrendSwarm', { 0.0, 0.0 } },
+            { EBC, 'GreaterThanEconTrendOverTimeSwarm', { 0.0, 0.0 } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 1.1, 1.12 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.1, 1.12 }},
 
             { MIBC, 'ArmyNeedsTransports', {} },
 
@@ -38,9 +36,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Transports - Water Map',               
         PlatoonTemplate = 'T2AirTransport',
         Priority = 650,
         BuilderConditions = {
-            { EBC, 'GreaterThanEconTrendSwarm', { 0.0, 0.0 } },
+            { EBC, 'GreaterThanEconTrendOverTimeSwarm', { 0.0, 0.0 } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 1.15, 1.2 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.15, 1.2 }},
 
             { MIBC, 'ArmyNeedsTransports', {} },
 
@@ -60,9 +58,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Transports - Water Map',               
         PlatoonTemplate = 'T3AirTransport',
         Priority = 750,
         BuilderConditions = {
-            { EBC, 'GreaterThanEconTrendSwarm', { 0.0, 0.0 } },
+            { EBC, 'GreaterThanEconTrendOverTimeSwarm', { 0.0, 0.0 } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 1.2, 1.25 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.2, 1.25 }},
 
             { MIBC, 'ArmyNeedsTransports', {} },
 
@@ -85,9 +83,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Land Builders - Water Map',            
         PlatoonTemplate = 'S1 LandSquads Amphibious',
         Priority = 500,
         BuilderConditions = {
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.6, 0.8 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 0.6, 0.8 }},
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.02, 0.1}},
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
 
             { MIBC, 'CanPathToCurrentEnemySwarm', { false, 'LocationType' } },
 
@@ -105,9 +103,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Land Builders - Water Map',            
         PlatoonTemplate = 'S2 LandSquads Amphibious',
         Priority = 700,
         BuilderConditions = {
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.85, 0.9 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 0.85, 0.9 }},
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.05, 0.1}},
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
 
             { MIBC, 'CanPathToCurrentEnemySwarm', { false, 'LocationType' } },
 
@@ -125,9 +123,9 @@ BuilderGroup { BuilderGroupName = 'Swarm Land Builders - Water Map',            
         PlatoonTemplate = 'S3 LandSquads Amphibious',
         Priority = 900,
         BuilderConditions = {
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 1.0, 1.1 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 1.0, 1.1 }},
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.07, 0.1}},
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
 
             { MIBC, 'CanPathToCurrentEnemySwarm', { false, 'LocationType' } },
 
@@ -145,12 +143,14 @@ BuilderGroup {
 
     Builder {
         BuilderName = 'Swarm Commander Factory Builder Air - Watermap',
-        PlatoonTemplate = 'EngineerBuilderALLTECH',
+        PlatoonTemplate = 'EngineerBuilderALLTECHSwarm',
         Priority = 575,
         BuilderConditions = {
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.05, 0.50}},
+            { EBC, 'MassToFactoryRatioBaseCheckSwarm', { 'LocationType' } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.75, 0.9 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 0.9, 1.0 }}, 
+
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
 
             { MIBC, 'CanPathToCurrentEnemySwarm', { false, 'LocationType' } },
 
@@ -170,12 +170,14 @@ BuilderGroup {
 
     Builder {
         BuilderName = 'Swarm Factory Builder Land - Watermap',
-        PlatoonTemplate = 'EngineerBuilderALLTECH',
+        PlatoonTemplate = 'EngineerBuilderALLTECHSwarm',
         Priority = 600,
         BuilderConditions = {
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.05, 0.50}},
+            { EBC, 'MassToFactoryRatioBaseCheckSwarm', { 'LocationType' } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.75, 0.9 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 0.9, 1.0 }}, 
+
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
 
             { MIBC, 'CanPathToCurrentEnemySwarm', { false, 'LocationType' } }, 
 
@@ -195,12 +197,14 @@ BuilderGroup {
 
     Builder {
         BuilderName = 'Swarm Factory Builder Air - Watermap',
-        PlatoonTemplate = 'EngineerBuilderALLTECH',
+        PlatoonTemplate = 'EngineerBuilderALLTECHSwarm',
         Priority = 600,
         BuilderConditions = {
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.05, 0.50}},
+            { EBC, 'MassToFactoryRatioBaseCheckSwarm', { 'LocationType' } },
 
-            { EBC, 'GreaterThanEconEfficiencyOverTime', { 0.75, 0.9 }},
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 0.9, 1.0 }}, 
+
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
 
             { MIBC, 'CanPathToCurrentEnemySwarm', { false, 'LocationType' } },
 

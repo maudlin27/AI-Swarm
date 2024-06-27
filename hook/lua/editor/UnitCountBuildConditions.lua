@@ -2,6 +2,8 @@
 
 WARN('['..string.gsub(debug.getinfo(1).source, ".*\\(.*.lua)", "%1")..', line:'..debug.getinfo(1).currentline..'] * AI-Swarm: offset UCBC.lua' )
 
+local IsAnyEngineerBuilding = moho.aibrain_methods.IsAnyEngineerBuilding
+
 local BASEPOSTITIONSSWARM = {}
 local mapSizeX, mapSizeZ = GetMapSize()
 
@@ -15,6 +17,14 @@ end
 function ReturnFalse(aiBrain)
     LOG('** false')
     return false
+end
+
+function IsEngineerNotBuildingSwarm(aiBrain, category)
+    -- Returns true if no engineer is building anything in the category
+    if IsAnyEngineerBuilding(aiBrain, category) then
+        return false
+    end
+    return true 
 end
 
 --            { UCBC, 'UnitsLessInPlatoon', {} },
@@ -51,19 +61,6 @@ end
 
 
 function CDRHealthLessThanSwarm(aiBrain, health)
-    local cdr = aiBrain:GetListOfUnits(categories.COMMAND, false)[1]
-    if cdr.Dead or not cdr.BeenDestroyed or cdr:BeenDestroyed() then
-        return false
-    end
-    local armorPercent = 100 / cdr:GetMaxHealth() * cdr:GetHealth()
-    local shieldPercent = armorPercent
-    if cdr.MyShield then
-        shieldPercent = 100 / cdr.MyShield:GetMaxHealth() * cdr.MyShield:GetHealth()
-    end
-    return math.floor(( armorPercent + shieldPercent ) / 2) < health
-end
-
-function CDRHealthLessThan(aiBrain, health)
     local cdr = aiBrain:GetListOfUnits(categories.COMMAND, false)[1]
     if cdr.Dead or not cdr.BeenDestroyed or cdr:BeenDestroyed() then
         return false
@@ -151,16 +148,6 @@ function HaveUnitRatioAtLocationSwarm(aiBrain, locType, ratio, categoryNeed, com
         radius = aiBrain.BuilderManagers[locType].FactoryManager:GetLocationRadius()
         BASEPOSTITIONSSWARM[AIName] = BASEPOSTITIONSSWARM[AIName] or {} 
         BASEPOSTITIONSSWARM[AIName][locType] = {Pos=baseposition, Rad=radius}
-    elseif aiBrain:PBMHasPlatoonList() then
-        for k,v in aiBrain.PBM.Locations do
-            if v.LocationType == locType then
-                baseposition = v.Location
-                radius = v.Radius
-                BASEPOSTITIONSSWARM[AIName] = BASEPOSTITIONSSWARM[AIName] or {} 
-                BASEPOSTITIONSSWARM[AIName][locType] = {baseposition, radius}
-                break
-            end
-        end
     end
     if not baseposition then
         return false
@@ -183,16 +170,6 @@ function HaveUnitRatioAtLocationSwarmRadiusVersusEnemy(aiBrain, ratio, locType, 
         radius = aiBrain.BuilderManagers[locType].FactoryManager:GetLocationRadius()
         BASEPOSTITIONSSWARM[AIName] = BASEPOSTITIONSSWARM[AIName] or {} 
         BASEPOSTITIONSSWARM[AIName][locType] = {Pos=baseposition, Rad=radius}
-    elseif aiBrain:PBMHasPlatoonList() then
-        for k,v in aiBrain.PBM.Locations do
-            if v.LocationType == locType then
-                baseposition = v.Location
-                radius = v.Radius
-                BASEPOSTITIONSSWARM[AIName] = BASEPOSTITIONSSWARM[AIName] or {} 
-                BASEPOSTITIONSSWARM[AIName][locType] = {baseposition, radius}
-                break
-            end
-        end
     end
     if not baseposition then
         return false
@@ -299,16 +276,6 @@ function GetUnitsBeingBuiltLocationSwarm(aiBrain, locType, buildingCategory, bui
         radius = aiBrain.BuilderManagers[locType].FactoryManager:GetLocationRadius()
         BASEPOSTITIONSSWARM[AIName] = BASEPOSTITIONSSWARM[AIName] or {} 
         BASEPOSTITIONSSWARM[AIName][locType] = {Pos=baseposition, Rad=radius}
-    elseif aiBrain:PBMHasPlatoonList() then
-        for k,v in aiBrain.PBM.Locations do
-            if v.LocationType == locType then
-                baseposition = v.Location
-                radius = v.Radius
-                BASEPOSTITIONSSWARM[AIName] = BASEPOSTITIONSSWARM[AIName] or {} 
-                BASEPOSTITIONSSWARM[AIName][locType] = {baseposition, radius}
-                break
-            end
-        end
     end
     if not baseposition then
         return false
@@ -471,72 +438,6 @@ function HaveComparativeUnitsWithCategoryAndAllianceSwarm(aiBrain, greater, myCa
     return false
 end
 
-function HasMassPointShare( aiBrain )
-
-	local SWARMGETN = table.getn
-
-    local ArmyCount = 0
-    local TeamCount = 0
-    
-	local MassMarker = {}
-    local MassMarker = table.getn(MassMarker)
-    
-    for _,brain in ArmyBrains do
-	
-        if not brain:IsDefeated() and not ArmyIsCivilian(brain:GetArmyIndex()) then
-		
-			ArmyCount = ArmyCount + 1		-- number of players in the game
-			
-			if IsAlly( aiBrain:GetArmyIndex(), brain:GetArmyIndex() ) then
-				TeamCount = TeamCount + 1 	-- number of players on this team
-			end
-        end
-    end
-
-	local GetListOfUnits = moho.aibrain_methods.GetListOfUnits
-	
-    local extractorCount = SWARMGETN(GetListOfUnits(aiBrain,categories.MASSEXTRACTION, false))
-	local fabricatorCount = SWARMGETN(GetListOfUnits(aiBrain,categories.MASSFABRICATION * categories.TECH3, false))
-	local res_genCount = SWARMGETN(GetListOfUnits(aiBrain,categories.MASSFABRICATION * categories.EXPERIMENTAL, false))
-	
-	extractorCount = extractorCount + (fabricatorCount * .5) + (res_genCount * 3)
-	
-	return extractorCount >= SWARMFLOOR( (MassMarker/ ArmyCount)-1 )
-end
-
-function NeedMassPointShare( aiBrain )
-
-	local SWARMGETN = table.getn
-
-    local ArmyCount = 0
-    local TeamCount = 0
-
-    local MassMarker = {}
-    local MassMarker = table.getn(MassMarker)
-    
-    for _,brain in ArmyBrains do
-	
-        if not brain:IsDefeated() and not ArmyIsCivilian(brain:GetArmyIndex()) then
-		
-			ArmyCount = ArmyCount + 1		-- number of players in the game
-			
-			if IsAlly( aiBrain:GetArmyIndex(), brain:GetArmyIndex() ) then
-				TeamCount = TeamCount + 1 	-- number of players on this team
-			end
-        end
-    end
-
-	local GetListOfUnits = moho.aibrain_methods.GetListOfUnits
-	
-    local extractorCount = SWARMGETN(GetListOfUnits(aiBrain,categories.MASSEXTRACTION, false))
-	local fabricatorCount = SWARMGETN(GetListOfUnits(aiBrain,categories.MASSFABRICATION * categories.TECH3, false))
-	local res_genCount = SWARMGETN(GetListOfUnits(aiBrain,categories.MASSFABRICATION * categories.EXPERIMENTAL, false))
-	
-	extractorCount = extractorCount + (fabricatorCount * .5) + (res_genCount * 3)
-	
-	return extractorCount <= SWARMFLOOR( (MassMarker/ ArmyCount)-1 )	
-end
-
 function AirStrengthRatioGreaterThan( aiBrain, value )
 
     if aiBrain.MyAirRatio <= .01 then
@@ -590,19 +491,19 @@ function ScalePlatoonSizeSwarm(aiBrain, locationType, type, unitCategory)
                 return true
             end
         elseif currentTime < 480 then
-            if PoolGreaterAtLocation(aiBrain, locationType, 6, unitCategory) then
+            if PoolGreaterAtLocation(aiBrain, locationType, 5, unitCategory) then
                 return true
             end
         elseif currentTime < 660 then
-            if PoolGreaterAtLocation(aiBrain, locationType, 8, unitCategory) then
+            if PoolGreaterAtLocation(aiBrain, locationType, 6, unitCategory) then
                 return true
             end
         elseif currentTime > 700 then
-            if PoolGreaterAtLocation(aiBrain, locationType, 9, unitCategory) then
+            if PoolGreaterAtLocation(aiBrain, locationType, 7, unitCategory) then
                 return true
             end
         elseif currentTime > 900 then
-            if PoolGreaterAtLocation(aiBrain, locationType, 10, unitCategory) then
+            if PoolGreaterAtLocation(aiBrain, locationType, 8, unitCategory) then
                 return true
             end
         else
@@ -652,6 +553,33 @@ function ScalePlatoonSizeSwarm(aiBrain, locationType, type, unitCategory)
         else
             return false
         end
+    end
+    return false
+end
+
+---@param aiBrain AIBrain
+---@param sizetable number
+---@param category EntityCategory
+---@param idleReq boolean
+---@return boolean
+function HaveLessThanUnitsForMapSizeSwarm(aiBrain, sizetable, category, idleReq)
+    local numUnits
+    local total = 0
+    local mapSizeX, mapSizeZ = GetMapSize()
+    if not sizetable[mapSizeX] or not sizetable[mapSizeZ] then
+        return false
+    end
+    local numReq = sizetable[mapSizeX] or sizetable[mapSizeZ]
+    if type(category) == 'string' then
+        category = ParseEntityCategory(category)
+    end
+    if not idleReq then
+        numUnits = aiBrain:GetCurrentUnits(category)
+    else
+        numUnits = table.getn(aiBrain:GetListOfUnits(category, true))
+    end
+    if numUnits < numReq then
+        return true
     end
     return false
 end

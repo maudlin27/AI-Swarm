@@ -32,12 +32,11 @@ BaseBuilderTemplate {
 
         -- Engineer Tasks
         'Swarm Engineer Assistees',
-        'Swarm Engineer Reclaim',
+        'Swarm Engineer Reclaim Main',
         'Swarm Engineering Support Builder',
 
         -- Build MassExtractors / Creators
         'S1 MassBuilders',
-        'S123 ExtractorUpgrades SWARM', 
         'S1 MassStorage Builder',
 
         -- Build Power Tech 1,2,3
@@ -49,7 +48,7 @@ BaseBuilderTemplate {
         'Swarm Gate Builders',
         
         -- Upgrade Factories TECH1->TECH2 and TECH2->TECH3
-        'Swarm Factory Upgrader Rush',
+        --'Swarm Factory Upgrader Rush',
         -- Build Air Staging Platform to refill and repair air units.
         'Swarm Air Staging Platform Builders',
 
@@ -65,7 +64,6 @@ BaseBuilderTemplate {
         'S3 SACU Formers',
 
         'Swarm AI Defense Formers',
-        'Swarm AI United Land Formers', 
 
         -----------------------------------------------------------------------------
         -- ==== Air Units BUILDER ==== --
@@ -120,6 +118,7 @@ BaseBuilderTemplate {
 
         'Swarm Adaptive Factory Build',
         'Swarm Adaptive Air Build',
+        'Swarm Adaptive Land Build',
         -----------------------------------------------------------------------------
         -- ==== Scout BUILDER ==== --
         -----------------------------------------------------------------------------
@@ -156,10 +155,10 @@ BaseBuilderTemplate {
             Gate = 2,
         },
         EngineerCount = {
-            Tech1 = 15,
-            Tech2 = 5,
-            Tech3 = 4,
-            SCU = 12,
+            Tech1 = 24,
+            Tech2 = 7,
+            Tech3 = 5,
+            SCU = 10,
         },
         MassToFactoryValues = {
             T1Value = 6,

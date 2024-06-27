@@ -16,18 +16,12 @@ BaseBuilderTemplate {
         -----------------------------------------------------------------------------
         -- ==== Engineer ==== --
         -----------------------------------------------------------------------------
-        -- Build Engineers Tech 1,2,3 and SACU
+        -- Build Engineers Tech 1,2,3 
         'Swarm Expansion Engineer Builders',
         -- Assistees
         'Swarm Engineer Assistees',
         -- Reclaim mass
-        'Swarm Engineer Reclaim',
-
-        -----------------------------------------------------------------------------
-        -- ==== Energy ==== --
-        -----------------------------------------------------------------------------
-        -- Build Power Tech 1,2,3
-        'S123 Energy Builders',                       -- Priority = 1100
+        'Swarm Engineer Reclaim Expansion',
 
         -----------------------------------------------------------------------------
         -- ==== Factory ==== --
@@ -35,13 +29,12 @@ BaseBuilderTemplate {
         -- Build Land/Air Factories
         'Swarm Adaptive Factory Build',
         -- Upgrade Factories TECH1->TECH2 and TECH2->TECH3
-        'Swarm Factory Upgrader Rush',
+        --'Swarm Factory Upgrader Rush',
 
         -----------------------------------------------------------------------------
         -- ==== Land Units BUILDER ==== --
         -----------------------------------------------------------------------------
         'Swarm Land Builders Ratio',
-        'Swarm SACU Builder',
 
         -----------------------------------------------------------------------------
         -- ==== Land Units FORMER==== --
@@ -57,19 +50,6 @@ BaseBuilderTemplate {
         -- ==== Air Units FORMER==== --
         -----------------------------------------------------------------------------
         'Swarm Air Formers',
-        
-        -----------------------------------------------------------------------------
-        -- ==== EXPERIMENTALS BUILDER ==== --
-        -----------------------------------------------------------------------------
-        'Swarm Land Experimental Builders',
-        'Swarm Air Experimental Builders',
-        
-        -----------------------------------------------------------------------------
-        -- ==== EXPERIMENTALS FORMER ==== --
-        -----------------------------------------------------------------------------
-        'Swarm Land Experimental Formers',
-        'Swarm Air Experimental Formers',
-
         -----------------------------------------------------------------------------
         -- ==== Structure Shield BUILDER ==== --
         -----------------------------------------------------------------------------
@@ -79,11 +59,8 @@ BaseBuilderTemplate {
         -----------------------------------------------------------------------------
         -- ==== Defenses BUILDER ==== --
         -----------------------------------------------------------------------------
-        'Swarm Strategic Builder',
-        'Strategic Platoon Formers',
         'Swarm T2 Tactical Missile Defenses Builder',
         'Swarm SMD Builder',
-        'Swarm Defense Plus Builders',
         'Swarm Defense Plus Builders Expansion',
         
         -- Build Anti Air near AirFactories
@@ -118,16 +95,16 @@ BaseBuilderTemplate {
 
     BaseSettings = {
         FactoryCount = {
-            Land = 0,
-            Air = 0,
+            Land = 3,
+            Air = 1,
             Sea = 0,
-            Gate = 1,
+            Gate = 0,
         },
         EngineerCount = {
-            Tech1 = 1,
+            Tech1 = 2,
             Tech2 = 2,
             Tech3 = 1,
-            SCU = 1,
+            SCU = 0,
         },
         MassToFactoryValues = {
             T1Value = 6,

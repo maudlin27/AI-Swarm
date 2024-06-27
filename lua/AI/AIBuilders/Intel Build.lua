@@ -11,7 +11,7 @@ BuilderGroup {
     BuildersType = 'EngineerBuilder',
     Builder {
         BuilderName = 'S1 Radar',
-        PlatoonTemplate = 'EngineerBuilder',
+        PlatoonTemplate = 'T1EngineerBuilderSwarm',
         Priority = 600,
         BuilderConditions = {
             { UCBC, 'UnitsLessAtLocation', { 'LocationType', 1, (categories.RADAR + categories.OMNI) * categories.STRUCTURE}},
@@ -20,14 +20,17 @@ BuilderGroup {
 
             { UCBC, 'HaveGreaterThanUnitsWithCategory', { 1, categories.STRUCTURE * categories.FACTORY * categories.LAND } },
 
-            { EBC, 'GreaterThanEconTrendSwarm', { 0.0, 5.0 }},
+            { EBC, 'GreaterThanEconTrendOverTimeSwarm', { 0.0, 5.0 }},
         },
         BuilderType = 'Any',
         BuilderData = {
             Construction = {
                 BuildClose = false,
-                AdjacencyCategory = categories.STRUCTURE * categories.ENERGYPRODUCTION,
-                AdjacencyDistance = 50,
+                AdjacencyPriority = {
+                    categories.ENERGYPRODUCTION * categories.TECH3,
+                    categories.ENERGYPRODUCTION * categories.TECH2,
+                    categories.ENERGYPRODUCTION * categories.TECH1,
+                },
                 BuildStructures = {
                     'T1Radar',
                 },
@@ -38,7 +41,7 @@ BuilderGroup {
 
     Builder {
         BuilderName = 'S3 Radar',
-        PlatoonTemplate = 'T3EngineerBuildernoSUB',
+        PlatoonTemplate = 'T3EngineerBuildernoSUBSwarm',
         Priority = 1000,
         BuilderConditions = {
 
@@ -46,7 +49,7 @@ BuilderGroup {
 
             { UCBC, 'HaveGreaterThanUnitsWithCategory', { 0, categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH3 }},
 
-            { EBC, 'GreaterThanEconTrendSwarm', { 1.5, 200.0 } }, -- relative income
+            { EBC, 'GreaterThanEconTrendOverTimeSwarm', { 1.5, 200.0 } }, -- relative income
 
             { UCBC, 'UnitsLessAtLocation', { 'LocationType', 1, categories.OMNI * categories.STRUCTURE } },
 
@@ -55,8 +58,11 @@ BuilderGroup {
         BuilderType = 'Any',
         BuilderData = {
             Construction = {
-                AdjacencyCategory = categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH3,
-                AdjacencyDistance = 50,
+                AdjacencyPriority = {
+                    categories.ENERGYPRODUCTION * categories.TECH3,
+                    categories.ENERGYPRODUCTION * categories.TECH2,
+                    categories.ENERGYPRODUCTION * categories.TECH1,
+                },
                 BuildStructures = {
                     'T3Radar',
                 },
@@ -67,7 +73,7 @@ BuilderGroup {
 
     Builder {
         BuilderName = 'S1 Reclaim T1+T2 Radar',
-        PlatoonTemplate = 'EngineerBuilder',
+        PlatoonTemplate = 'T1EngineerBuilderSwarm',
         PlatoonAIPlan = 'ReclaimStructuresAI',
         Priority = 790,
         InstanceCount = 2,
@@ -93,12 +99,17 @@ BuilderGroup {
     BuildersType = 'PlatoonFormBuilder',
     Builder {
         BuilderName = 'S1 Radar Upgrade',
-        PlatoonTemplate = 'T1RadarUpgrade',
-        Priority = 10000,
-        BuilderConditions = {
-            { UCBC, 'HaveGreaterThanUnitsWithCategory', { 1, categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH3 } },
 
-            { EBC, 'GreaterThanEconTrendSwarm', { 0.0, 0.0 } }, 
+        PlatoonTemplate = 'T1RadarUpgrade',
+
+        Priority = 500,
+
+        BuilderConditions = {
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
+
+            { EBC, 'GreaterThanEconTrendOverTimeSwarm', { 0.0, 10.0 } }, 
+
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 0.85, 1.02 }}, 
    
             { UCBC, 'HaveLessThanUnitsInCategoryBeingUpgradeSwarm', { 1, categories.RADAR * categories.TECH1 }},
         },
@@ -106,14 +117,21 @@ BuilderGroup {
     },
     Builder {
         BuilderName = 'S2 Radar Upgrade',
+
         PlatoonTemplate = 'T2RadarUpgrade',
-        Priority = 1000,
+
+        Priority = 600,
+
         BuilderConditions = {
-            { UCBC, 'HaveGreaterThanUnitsWithCategory', { 2, categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH3 } },
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},
+
+            { EBC, 'GreaterThanEconTrendOverTimeSwarm', { 0.0, 100.0 } }, 
+
+            { EBC, 'GreaterThanEconEfficiencyOverTimeSwarm', { 0.85, 1.02 }}, 
+
+            { UCBC, 'HaveGreaterThanUnitsWithCategory', { 0, categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH3 } },
          
             { UCBC, 'HaveLessThanUnitsWithCategory', { 1, categories.OMNI * categories.STRUCTURE }},
-           
-            { EBC, 'GreaterThanEconTrendSwarm', { 0.0, 0.0 } }, 
            
             { UCBC, 'HaveLessThanUnitsInCategoryBeingUpgradeSwarm', { 1, categories.RADAR * categories.TECH2 }},
         },
@@ -134,19 +152,22 @@ BuilderGroup {
         BuilderConditions = {
             { UCBC, 'HaveLessThanUnitsWithCategory', { 1, categories.OPTICS * categories.AEON}},
 
-            { EBC, 'GreaterThanEconIncomeSwarm', { 15, 1500}},
+            { EBC, 'GreaterThanEconIncomeOverTimeSwarm', { 15, 1500}},
 
-            { EBC, 'GreaterThanEconTrendSwarm', { 0.0, 0.0 } }, 
+            { EBC, 'GreaterThanEconTrendOverTimeSwarm', { 0.0, 0.0 } }, 
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.15, 0.50 } },          
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},          
 
             { UCBC, 'HaveUnitRatioVersusCapSwarm', { MaxCapStructure , '<', categories.STRUCTURE - categories.MASSEXTRACTION - categories.DEFENSE - categories.FACTORY } },
         },
         BuilderType = 'Any',
         BuilderData = {
             Construction = {
-                AdjacencyCategory = 'ENERGYPRODUCTION',
-                AdjacencyDistance = 100,
+                AdjacencyBias = 'BackClose',
+                AdjacencyPriority = {
+                    categories.STRUCTURE * categories.SHIELD,
+                    categories.ENERGYPRODUCTION * categories.TECH3,
+                },
                 BuildClose = false,
                 BuildStructures = {
                     'T3Optics',
@@ -167,19 +188,22 @@ BuilderGroup {
         BuilderConditions = {
             { UCBC, 'HaveLessThanUnitsWithCategory', { 1, categories.OPTICS * categories.CYBRAN}},
 
-            { EBC, 'GreaterThanEconIncomeSwarm', { 15, 1500}},
+            { EBC, 'GreaterThanEconIncomeOverTimeSwarm', { 15, 1500}},
 
-            { EBC, 'GreaterThanEconStorageRatioSwarm', { 0.20, 0.50 } },  
+            { EBC, 'GreaterThanEconStorageCurrentSwarm', { 100, 1000}},  
 
-            { EBC, 'GreaterThanEconTrendSwarm', { 0.0, 0.0 } },
+            { EBC, 'GreaterThanEconTrendOverTimeSwarm', { 0.0, 0.0 } },
 
             { UCBC, 'HaveUnitRatioVersusCapSwarm', { MaxCapStructure , '<', categories.STRUCTURE - categories.MASSEXTRACTION - categories.DEFENSE - categories.FACTORY } },
         },
         BuilderType = 'Any',
         BuilderData = {
             Construction = {
-                AdjacencyCategory = 'ENERGYPRODUCTION',
-                AdjacencyDistance = 100,
+                AdjacencyBias = 'ForwardClose',
+                AdjacencyPriority = {
+                    categories.STRUCTURE * categories.SHIELD,
+                    categories.ENERGYPRODUCTION * categories.TECH3,
+                },
                 BuildClose = false,
                 BuildStructures = {
                     'T3Optics',
