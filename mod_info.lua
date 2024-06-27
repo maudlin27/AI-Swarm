@@ -23,4 +23,4 @@ SHA c88b664d7658a4027725f4678e24c3614cfd5a93 - by Relent0r, June 24, 2023 - …n
 
 Details of the precise changes from each of these SHAs can be viewed on github
 The code for version 286 is based on this pull request by Relent0r: https://github.com/Azraeel/AI-Swarm/pull/51
-The license applying to swarm also applies to these changes
+The license applying to swarm also applies to these changes--]]
